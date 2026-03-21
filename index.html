@@ -1628,7 +1628,7 @@ async function buildReport() {
     const dayLabel  = fmtDateFR(curDate);
     const nextLabel = fmtDateFR(nextDate);
 
-    let txt = `Bonjour,\n\n*Journée d'hier - ${dayLabel}*\n\n`;
+    let txt = `Bonjour,\n\n*Journée du ${dayLabel}*\n\n`;
 
     dayEvts.filter(e => (e.time||'') >= '07:00').forEach(ev => {
       const l = evtToLine(ev);
