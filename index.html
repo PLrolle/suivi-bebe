@@ -1820,7 +1820,10 @@ async function loadDash() {
             const items = JSON.parse(e.notes);
             items.forEach(it => {
               if (!it.n) return;
-              (it.isNew !== false ? vegNew : vegKnown).add(it.n.trim().toLowerCase());
+              // Split par virgule au cas où l'utilisateur aurait tapé plusieurs noms dans un champ
+              it.n.split(',').map(s => s.trim().toLowerCase()).filter(Boolean).forEach(name => {
+                (it.isNew !== false ? vegNew : vegKnown).add(name);
+              });
             });
             return;
           } catch {}
