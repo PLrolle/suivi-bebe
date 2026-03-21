@@ -209,10 +209,10 @@
     .nav-tab {
       flex: 1; border: none; background: none; cursor: pointer;
       display: flex; flex-direction: column; align-items: center;
-      gap: 2px; padding: 8px 4px; font-size: 10px; font-weight: 500;
-      color: var(--muted); transition: color .2s;
+      gap: 2px; padding: 6px 4px 4px; font-size: 11px; font-weight: 600;
+      color: var(--muted); transition: color .2s; letter-spacing: -.1px;
     }
-    .nav-tab .ni { font-size: 24px; }
+    .nav-tab .ni { font-size: 22px; }
     .nav-tab.active { color: var(--primary); }
 
     /* ── FAB ── */
@@ -382,6 +382,75 @@
     .flex-btns { display: flex; gap: 10px; margin-top: 20px; }
     .flex-btns > * { flex: 1; }
 
+    /* ── REPORT PANEL ── */
+    #report-panel {
+      display: none; position: fixed; inset: 0;
+      background: var(--bg); z-index: 300; flex-direction: column;
+    }
+    #report-panel.open { display: flex; }
+
+    /* ── LUNCH ITEMS ── */
+    .lunch-items { display: flex; flex-direction: column; gap: 8px; }
+    .lunch-item {
+      display: flex; gap: 6px; align-items: center;
+      background: var(--bg); border-radius: 10px; padding: 8px 10px;
+    }
+    .lunch-item input[type="text"] {
+      flex: 2; padding: 8px 10px; border: 1.5px solid var(--border);
+      border-radius: 8px; font-size: 14px; font-family: inherit;
+      background: var(--card); color: var(--text); outline: none;
+    }
+    .lunch-item input[type="text"]:focus { border-color: var(--primary); }
+    .lunch-item select {
+      flex: 1.2; padding: 8px 6px; border: 1.5px solid var(--border);
+      border-radius: 8px; font-size: 13px; font-family: inherit;
+      background: var(--card); color: var(--text); outline: none; appearance: none;
+    }
+    .lunch-item input[type="number"] {
+      flex: 1; padding: 8px 8px; border: 1.5px solid var(--border);
+      border-radius: 8px; font-size: 14px; font-family: inherit;
+      background: var(--card); color: var(--text); outline: none; min-width: 0;
+    }
+    .lunch-item .li-unit {
+      font-size: 11px; color: var(--muted); min-width: 18px; text-align: left;
+    }
+    .lunch-item .li-del {
+      width: 28px; height: 28px; border: none; background: none;
+      color: var(--muted); font-size: 16px; cursor: pointer; flex-shrink: 0;
+      border-radius: 6px; display: flex; align-items: center; justify-content: center;
+    }
+    .lunch-item .li-del:active { background: var(--danger); color: white; }
+    .add-item-btn {
+      width: 100%; padding: 10px; border: 1.5px dashed var(--border);
+      border-radius: 10px; background: none; color: var(--primary);
+      font-size: 14px; font-weight: 600; cursor: pointer; margin-top: 4px;
+    }
+
+    /* ── PROGRAMME TAB ── */
+    .program-wrap { padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+    .prog-card {
+      background: var(--card); border-radius: 14px;
+      padding: 14px 16px; box-shadow: 0 1px 4px rgba(0,0,0,.06);
+      display: flex; align-items: flex-start; gap: 12px;
+    }
+    .prog-icon { font-size: 26px; flex-shrink: 0; padding-top: 1px; }
+    .prog-body { flex: 1; }
+    .prog-time { font-size: 12px; font-weight: 700; color: var(--primary); text-transform: uppercase; letter-spacing: .4px; margin-bottom: 3px; }
+    .prog-title { font-size: 15px; font-weight: 700; }
+    .prog-detail { font-size: 13px; color: var(--muted); margin-top: 4px; line-height: 1.5; }
+    .prog-warn { font-size: 12px; color: var(--danger); font-weight: 600; margin-top: 4px; }
+    .prog-badge {
+      display: inline-block; background: #ebf4ff; color: var(--primary);
+      font-size: 11px; font-weight: 700; padding: 2px 8px;
+      border-radius: 20px; margin-top: 4px;
+    }
+    .prog-total {
+      background: linear-gradient(135deg,#667eea,#764ba2);
+      color: white; border-radius: 14px; padding: 14px 16px;
+      text-align: center; font-weight: 700; font-size: 15px;
+    }
+    .prog-total span { font-size: 22px; display: block; margin-bottom: 4px; }
+
     /* ── DASHBOARD ── */
     .dash-wrap { padding: 14px; display: flex; flex-direction: column; gap: 14px; }
 
@@ -539,6 +608,7 @@
       <button class="date-btn" onclick="changeDate(1)" aria-label="Jour suivant">›</button>
     </div>
     <div class="hdr-actions">
+      <button class="icon-btn" onclick="openReportPanel()" title="Rapport & Archives">📋</button>
       <button class="icon-btn" onclick="refreshDay()" title="Actualiser">🔄</button>
       <button class="icon-btn" onclick="openSettings()" title="Paramètres">⚙️</button>
     </div>
@@ -550,26 +620,9 @@
       <div id="day-body"><div class="loading"><div class="spinner"></div>Chargement…</div></div>
     </div>
 
-    <!-- RAPPORT -->
-    <div id="tab-report" class="tab-content">
-      <div class="report-section">
-        <p style="color:var(--muted);font-size:13px;margin-bottom:12px;">
-          Le rapport couvre la journée sélectionnée + la nuit suivante + le matin suivant.
-        </p>
-        <div class="report-controls">
-          <button class="btn-sm btn-blue" onclick="buildReport()">✨ Générer</button>
-          <button class="btn-sm btn-green" onclick="copyReport()">📋 Copier</button>
-          <button class="btn-sm btn-orange" onclick="saveReport()">💾 Sauvegarder</button>
-        </div>
-        <textarea id="report-text" placeholder="Appuyez sur ✨ Générer…"></textarea>
-      </div>
-    </div>
-
-    <!-- ARCHIVES -->
-    <div id="tab-archive" class="tab-content">
-      <div id="archive-body" class="archive-list">
-        <div class="loading"><div class="spinner"></div>Chargement…</div>
-      </div>
+    <!-- PROGRAMME -->
+    <div id="tab-program" class="tab-content">
+      <div id="program-body"></div>
     </div>
 
     <!-- DASHBOARD -->
@@ -584,14 +637,11 @@
     <button class="nav-tab active" id="nt-day" onclick="switchTab('day')">
       <span class="ni">📅</span><span>Journée</span>
     </button>
-    <button class="nav-tab" id="nt-report" onclick="switchTab('report')">
-      <span class="ni">📋</span><span>Rapport</span>
-    </button>
-    <button class="nav-tab" id="nt-archive" onclick="switchTab('archive')">
-      <span class="ni">📁</span><span>Archives</span>
-    </button>
     <button class="nav-tab" id="nt-dash" onclick="switchTab('dash')">
       <span class="ni">📊</span><span>Bilan</span>
+    </button>
+    <button class="nav-tab" id="nt-program" onclick="switchTab('program')">
+      <span class="ni">📋</span><span>Programme</span>
     </button>
   </nav>
 
@@ -617,8 +667,8 @@
       <button class="type-btn" data-t="bottle" onclick="pickType('bottle')">
         <span class="ti">🍼</span>Biberon
       </button>
-      <button class="type-btn" data-t="veggies" onclick="pickType('veggies')">
-        <span class="ti">🥣</span>Légumes
+      <button class="type-btn" data-t="lunch" onclick="pickType('lunch')">
+        <span class="ti">🥣</span>Déjeuner
       </button>
       <button class="type-btn" data-t="bath" onclick="pickType('bath')">
         <span class="ti">🛁</span>Bain
@@ -652,7 +702,31 @@
   </div>
 </div>
 
-<!-- ═══════════════ REPORT VIEW ═══════════════ -->
+<!-- ═══════════════ REPORT PANEL ═══════════════ -->
+<div id="report-panel">
+  <div class="rv-header">
+    <button class="rv-back" onclick="closeReportPanel()">‹</button>
+    <span id="rp-title" style="font-weight:700;font-size:16px;flex:1">Rapport</span>
+    <button class="btn-sm btn-blue" onclick="showArchives()" style="font-size:12px;padding:6px 10px">📁 Archives</button>
+  </div>
+  <!-- Report view -->
+  <div id="rp-report-view">
+    <div class="rv-body">
+      <div id="rp-auto-saved" style="display:none;text-align:center;font-size:12px;color:var(--success);padding:8px">✅ Rapport sauvegardé automatiquement</div>
+      <textarea id="report-text" style="width:100%;min-height:340px;border:1.5px solid var(--border);border-radius:14px;padding:14px;font-size:14px;font-family:inherit;resize:vertical;color:var(--text);background:var(--card);line-height:1.7;display:block;margin:0 16px 16px;width:calc(100% - 32px)"></textarea>
+    </div>
+    <div class="rv-actions">
+      <button class="btn-primary" onclick="copyReport()" style="flex:1">📋 Copier</button>
+      <button class="btn-sm btn-blue" onclick="buildReport()" style="flex:1;border-radius:13px;padding:15px">✨ Regénérer</button>
+    </div>
+  </div>
+  <!-- Archive list view -->
+  <div id="rp-archive-view" style="display:none;flex:1;overflow-y:auto">
+    <div id="archive-body" class="archive-list"></div>
+  </div>
+</div>
+
+<!-- ═══════════════ REPORT VIEW (single archive) ═══════════════ -->
 <div id="report-view">
   <div class="rv-header">
     <button class="rv-back" onclick="closeRV()">‹</button>
@@ -1029,14 +1103,13 @@ function applyDp() {
 //  TABS
 // ══════════════════════════════════════════════════════════════
 function switchTab(tab) {
-  ['day','report','archive','dash'].forEach(t => {
+  ['day','dash','program'].forEach(t => {
     document.getElementById(`tab-${t}`).classList.toggle('active', t === tab);
     document.getElementById(`nt-${t}`).classList.toggle('active', t === tab);
   });
   document.getElementById('fab').style.display = tab === 'day' ? 'flex' : 'none';
-  if (tab === 'archive') loadArchive();
-  if (tab === 'report')  buildReport();
   if (tab === 'dash')    loadDash();
+  if (tab === 'program') renderProgram();
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -1059,7 +1132,8 @@ const EVT = {
   wake_up:      { icon: '⏰', label: 'Lever' },
   nap:          { icon: '😴', label: 'Sieste' },
   bottle:       { icon: '🍼', label: 'Biberon' },
-  veggies:      { icon: '🥣', label: 'Légumes' },
+  lunch:        { icon: '🥣', label: 'Déjeuner' },
+  veggies:      { icon: '🥣', label: 'Déjeuner' }, // legacy
   bath:         { icon: '🛁', label: 'Bain' },
   bedtime:      { icon: '🌜', label: 'Coucher' },
   note:         { icon: '📝', label: 'Note' },
@@ -1067,28 +1141,46 @@ const EVT = {
 
 function evtDetail(e) {
   switch (e.type) {
-    case 'night_waking': return e.quantity_ml ? `${e.quantity_ml} ml` : '';
-    case 'wake_up':      return '';
+    case 'night_waking': {
+      let s = e.quantity_ml ? `${e.quantity_ml} ml` : '';
+      if (e.notes) s += (s ? ' · ' : '') + `<em>${e.notes}</em>`;
+      return s;
+    }
+    case 'wake_up':      return e.notes ? `<em>${e.notes}</em>` : '';
     case 'nap': {
       const dur = e.end_time ? calcDuration(e.time, e.end_time) : null;
       let s = e.nap_label ? `${e.nap_label}` : '';
       if (e.end_time) s += (s ? ' · ' : '') + `${e.time} → ${e.end_time}`;
       if (dur)        s += ` <span class="dur-badge">${dur}</span>`;
       else if (!e.end_time) s += (s ? ' · ' : '') + '<em>En cours…</em>';
+      if (e.notes) s += (s ? ' · ' : '') + `<em>${e.notes}</em>`;
       return s;
     }
     case 'bottle': {
       let s = e.quantity_ml ? `${e.quantity_ml} ml` : '';
       if (e.meal_type) s += (s ? ' · ' : '') + e.meal_type;
+      if (e.notes) s += (s ? ' · ' : '') + `<em>${e.notes}</em>`;
       return s;
     }
+    case 'lunch':
     case 'veggies': {
+      // Try JSON notes first
+      if (e.notes) {
+        try {
+          const items = JSON.parse(e.notes);
+          return items.map(it => it.isNew !== false
+            ? `${it.n} — ${it.qty} c. (nouveau)`
+            : `${it.n} — ${it.qty}g`
+          ).join(' · ');
+        } catch {}
+      }
+      // Legacy
       if (!e.ingredient) return '';
       return e.is_new
         ? `${e.ingredient} — ${e.quantity_spoons || '?'} c. (nouveau)`
         : `${e.ingredient} — ${e.quantity_grams || '?'}g`;
     }
-    case 'bath':    return '';
+    case 'bath':    return e.notes ? `<em>${e.notes}</em>` : '';
     case 'bedtime': return e.notes || '';
     case 'note':    return e.notes || '';
     default:        return '';
@@ -1129,7 +1221,7 @@ function renderDay() {
 const REFS = {
   night_waking: '🌙 Réveil 1 → 180 ml + 5 c. &nbsp;|&nbsp; Réveil 2 → 150 ml + 4 c. &nbsp;|&nbsp; Réveil 3 → 90 ml + 3 c.',
   bottle:       '🍼 Petit-déj : 210 ml &nbsp;·&nbsp; Déjeuner : 210 ml &nbsp;·&nbsp; Goûter : 180 ml &nbsp;·&nbsp; Dîner : 240 ml',
-  veggies:      '🥣 Nouveau ingrédient : 2–5 cuillères &nbsp;·&nbsp; Ingrédient connu : 30 g de purée',
+  lunch:        '🥣 Nouveau : 2–5 cuillères &nbsp;·&nbsp; Connu : 30 g de purée',
   nap:          '⏰ Matin : dès 8h30, max 10h45 &nbsp;·&nbsp; Après-midi : 12h–12h30, max 15h30 &nbsp;·&nbsp; Micro : ~17h, ⛔ jamais après 18h',
   bedtime:      '🛁 Bain : 18h &nbsp;·&nbsp; Coucher : 19h15–19h30',
 };
@@ -1177,6 +1269,11 @@ function renderFields(type, d = null) {
   switch (type) {
     case 'night_waking':
       html += field('Quantité bue (ml)', `<input type="number" id="f-ml" value="${d?.quantity_ml||''}" placeholder="ex : 180" inputmode="numeric" min="0" max="500">`);
+      html += field('Commentaire (optionnel)', `<input type="text" id="f-notes" value="${d?.notes||''}" placeholder="ex : s'est rendormi facilement…">`);
+      break;
+
+    case 'wake_up':
+      html += field('Commentaire (optionnel)', `<input type="text" id="f-notes" value="${d?.notes||''}" placeholder="ex : de bonne humeur, a bien dormi…">`);
       break;
 
     case 'nap':
@@ -1190,6 +1287,7 @@ function renderFields(type, d = null) {
       html += field('Heure de réveil (optionnel)',
         `<input type="time" id="f-end-time" value="${d?.end_time||''}">
         <div class="hint">⏱ La durée sera calculée automatiquement</div>`);
+      html += field('Commentaire (optionnel)', `<input type="text" id="f-notes" value="${d?.notes||''}" placeholder="ex : endormi en voiture, agité…">`);
       break;
 
     case 'bottle':
@@ -1202,27 +1300,35 @@ function renderFields(type, d = null) {
         </select>`);
       html += field('Quantité bue (ml)',
         `<input type="number" id="f-ml" value="${d?.quantity_ml||''}" placeholder="ex : 210" inputmode="numeric" min="0" max="500">`);
+      html += field('Commentaire (optionnel)', `<input type="text" id="f-notes" value="${d?.notes||''}" placeholder="ex : a refusé le reste…">`);
       break;
 
+    case 'lunch':
     case 'veggies': {
-      const isNew = d ? d.is_new : true;
-      html += field('Ingrédient',
-        `<input type="text" id="f-ingredient" value="${d?.ingredient||''}" placeholder="ex : carottes, courgette…">`);
-      html += field('Type',
-        `<select id="f-is-new" onchange="toggleVeg()">
-          <option value="new"   ${isNew?'selected':''}>Nouveau (cuillères)</option>
-          <option value="known" ${!isNew?'selected':''}>Connu (grammes)</option>
-        </select>`);
-      html += `<div id="veg-new" class="form-group" ${!isNew?'style="display:none"':''}>
-        <label>Nombre de cuillères <span style="color:var(--muted)">(2–5 recommandé)</span></label>
-        <input type="number" id="f-spoons" value="${d?.quantity_spoons||''}" placeholder="2–5" inputmode="numeric" min="1" max="20">
-      </div>`;
-      html += `<div id="veg-known" class="form-group" ${isNew?'style="display:none"':''}>
-        <label>Quantité (grammes) <span style="color:var(--muted)">(~30g)</span></label>
-        <input type="number" id="f-grams" value="${d?.quantity_grams||''}" placeholder="30" inputmode="numeric" min="0" max="300">
+      // Parse existing items from notes JSON or legacy fields
+      let items = [];
+      if (d?.notes) {
+        try { items = JSON.parse(d.notes); } catch {}
+      }
+      if (!items.length && d?.ingredient) {
+        // Legacy veggies format
+        items = [{ n: d.ingredient, isNew: d.is_new !== false, qty: d.is_new !== false ? (d.quantity_spoons||'') : (d.quantity_grams||'') }];
+      }
+      if (!items.length) items = [{ n: '', isNew: true, qty: '' }];
+
+      html += `<div class="form-group">
+        <label>Aliments servis</label>
+        <div class="lunch-items" id="lunch-items">
+          ${items.map((it, i) => lunchItemHTML(it, i)).join('')}
+        </div>
+        <button class="add-item-btn" onclick="addLunchItem(event)">+ Ajouter un aliment</button>
       </div>`;
       break;
     }
+
+    case 'bath':
+      html += field('Commentaire (optionnel)', `<input type="text" id="f-notes" value="${d?.notes||''}" placeholder="ex : a adoré l'eau, a pleuré…">`);
+      break;
 
     case 'bedtime':
       html += `<div class="warn-box">⚠️ Rituel : volets → câlin → lit → partir<br>Coucher cible : 19h15–19h30</div>`;
@@ -1243,10 +1349,52 @@ function field(label, inputHtml) {
   return `<div class="form-group"><label>${label}</label>${inputHtml}</div>`;
 }
 
-function toggleVeg() {
-  const isNew = document.getElementById('f-is-new').value === 'new';
-  document.getElementById('veg-new').style.display   = isNew ? '' : 'none';
-  document.getElementById('veg-known').style.display = isNew ? 'none' : '';
+function toggleVeg() {} // legacy, keep for safety
+
+let lunchItemCount = 0;
+
+function lunchItemHTML(item = { n: '', isNew: true, qty: '' }, idx) {
+  const id = idx !== undefined ? idx : lunchItemCount++;
+  return `<div class="lunch-item" id="li-${id}">
+    <input type="text" class="li-name" value="${(item.n||'').replace(/"/g,'&quot;')}" placeholder="Aliment…">
+    <select class="li-type" onchange="updateLunchUnit(this)">
+      <option value="new"   ${item.isNew !== false ? 'selected' : ''}>Nouveau</option>
+      <option value="known" ${item.isNew === false  ? 'selected' : ''}>Connu</option>
+    </select>
+    <input type="number" class="li-qty" value="${item.qty||''}" placeholder="${item.isNew !== false ? '2–5' : '30'}" inputmode="decimal" min="0" max="500">
+    <span class="li-unit">${item.isNew !== false ? 'c.' : 'g'}</span>
+    <button class="li-del" onclick="removeLunchItem(this)">✕</button>
+  </div>`;
+}
+
+function addLunchItem(e) {
+  e.preventDefault();
+  const container = document.getElementById('lunch-items');
+  const div = document.createElement('div');
+  div.innerHTML = lunchItemHTML({ n: '', isNew: true, qty: '' }, lunchItemCount++);
+  container.appendChild(div.firstElementChild);
+}
+
+function removeLunchItem(btn) {
+  const row = btn.closest('.lunch-item');
+  if (document.querySelectorAll('.lunch-item').length > 1) row.remove();
+}
+
+function updateLunchUnit(sel) {
+  const row  = sel.closest('.lunch-item');
+  const unit = row.querySelector('.li-unit');
+  const qty  = row.querySelector('.li-qty');
+  const isNew = sel.value === 'new';
+  unit.textContent    = isNew ? 'c.' : 'g';
+  qty.placeholder     = isNew ? '2–5' : '30';
+}
+
+function getLunchItems() {
+  return Array.from(document.querySelectorAll('.lunch-item')).map(row => ({
+    n:     row.querySelector('.li-name').value.trim(),
+    isNew: row.querySelector('.li-type').value === 'new',
+    qty:   parseFloat(row.querySelector('.li-qty').value) || 0,
+  })).filter(it => it.n);
 }
 
 async function saveEvt() {
@@ -1259,18 +1407,20 @@ async function saveEvt() {
   const v = (id) => document.getElementById(id)?.value || null;
   const n = (id) => { const x = parseFloat(document.getElementById(id)?.value); return isNaN(x) ? null : x; };
 
-  if (selType === 'night_waking') { fields.quantity_ml = n('f-ml'); }
+  if (selType === 'night_waking') { fields.quantity_ml = n('f-ml'); fields.notes = v('f-notes'); }
+  if (selType === 'wake_up') { fields.notes = v('f-notes'); }
   if (selType === 'nap') {
     const endEl = document.getElementById('f-end-time');
     if (endEl?.value) fields.end_time = endEl.value;
     fields.nap_label = v('f-nap-label');
+    fields.notes = v('f-notes');
   }
-  if (selType === 'bottle') { fields.quantity_ml = n('f-ml'); fields.meal_type = v('f-meal-type'); }
-  if (selType === 'veggies') {
-    fields.ingredient       = v('f-ingredient');
-    fields.is_new           = document.getElementById('f-is-new')?.value === 'new';
-    fields.quantity_spoons  = n('f-spoons');
-    fields.quantity_grams   = n('f-grams');
+  if (selType === 'bottle') { fields.quantity_ml = n('f-ml'); fields.meal_type = v('f-meal-type'); fields.notes = v('f-notes'); }
+  if (selType === 'bath') { fields.notes = v('f-notes'); }
+  if (selType === 'lunch' || selType === 'veggies') {
+    const items = getLunchItems();
+    fields.notes = JSON.stringify(items);
+    fields.type  = 'lunch'; // normalize legacy type
   }
   if (selType === 'bedtime') { fields.notes = v('f-notes'); }
   if (selType === 'note')    { fields.notes = v('f-notes'); }
@@ -1317,24 +1467,35 @@ function evtToLine(ev) {
   const t = fmtTimeFR(ev.time);
   switch (ev.type) {
     case 'wake_up':
-      return `⏰ Lever : ${t}`;
+      return `⏰ Lever : ${t}${ev.notes ? ` (${ev.notes})` : ''}`;
     case 'nap': {
       const label = ev.nap_label ? ` ${ev.nap_label}` : '';
+      let napLine;
       if (ev.end_time) {
         const dur = calcDuration(ev.time, ev.end_time);
         const range = `${t} – ${fmtTimeFR(ev.end_time)}`;
-        return `🛏 Sieste${label} : ${range}${dur ? ` (${dur})` : ''}`;
+        napLine = `🛏 Sieste${label} : ${range}${dur ? ` (${dur})` : ''}`;
+      } else {
+        napLine = `🛏 Sieste${label} : ${t}`;
       }
-      return `🛏 Sieste${label} : ${t}`;
+      return ev.notes ? `${napLine} — ${ev.notes}` : napLine;
     }
-    case 'bottle': {
-      const isDinner = ev.meal_type === 'dîner';
-      return isDinner
-        ? `🍼 Dîner ${t} : ${ev.quantity_ml || '?'} ml`
-        : `🍼 ${t} : ${ev.quantity_ml || '?'} ml`;
-    }
+    case 'lunch':
     case 'veggies': {
       let s = `🥣 Déjeuner (${t})`;
+      // Try JSON notes
+      if (ev.notes) {
+        try {
+          const items = JSON.parse(ev.notes);
+          items.forEach(it => {
+            s += it.isNew !== false
+              ? `\n• ${it.qty} c. ${it.n} (nouveau)`
+              : `\n• ${it.qty}g ${it.n}`;
+          });
+          return s;
+        } catch {}
+      }
+      // Legacy
       if (ev.ingredient) {
         s += ev.is_new
           ? `\n• ${ev.quantity_spoons || '?'} c. ${ev.ingredient} (nouveau)`
@@ -1342,17 +1503,49 @@ function evtToLine(ev) {
       }
       return s;
     }
-    case 'night_waking': return `🍼 Réveil ${t} : ${ev.quantity_ml || '?'} ml`;
-    case 'bath':         return `🛁 Bain : ${t}`;
+    case 'bottle': {
+      const isDinner = ev.meal_type === 'dîner';
+      const bottleLine = isDinner
+        ? `🍼 Dîner ${t} : ${ev.quantity_ml || '?'} ml`
+        : `🍼 ${t} : ${ev.quantity_ml || '?'} ml`;
+      return ev.notes ? `${bottleLine} — ${ev.notes}` : bottleLine;
+    }
+    case 'night_waking': return `🍼 Réveil ${t} : ${ev.quantity_ml || '?'} ml${ev.notes ? ` (${ev.notes})` : ''}`;
+    case 'bath':         return `🛁 Bain : ${t}${ev.notes ? ` (${ev.notes})` : ''}`;
     case 'bedtime':      return `🌙 Coucher : ${t}${ev.notes ? ` (${ev.notes})` : ''}`;
     case 'note':         return ev.notes ? `📝 ${ev.notes}` : '';
     default:             return '';
   }
 }
 
+function openReportPanel() {
+  document.getElementById('report-panel').classList.add('open');
+  document.getElementById('rp-title').textContent = 'Rapport';
+  showReportView();
+  buildReport();
+}
+
+function closeReportPanel() {
+  document.getElementById('report-panel').classList.remove('open');
+}
+
+function showReportView() {
+  document.getElementById('rp-report-view').style.display = '';
+  document.getElementById('rp-archive-view').style.display = 'none';
+  document.getElementById('rp-title').textContent = 'Rapport';
+}
+
+function showArchives() {
+  document.getElementById('rp-report-view').style.display = 'none';
+  document.getElementById('rp-archive-view').style.display = '';
+  document.getElementById('rp-title').textContent = 'Archives';
+  loadArchive();
+}
+
 async function buildReport() {
   const ta = document.getElementById('report-text');
   ta.value = '⏳ Génération…';
+  document.getElementById('rp-auto-saved').style.display = 'none';
 
   try {
     const dayEvts = [...events].sort((a, b) => (a.time||'').localeCompare(b.time||''));
@@ -1364,13 +1557,11 @@ async function buildReport() {
 
     let txt = `Bonjour,\n\n*Journée d'hier - ${dayLabel}*\n\n`;
 
-    // Main day events (from 07:00)
     dayEvts.filter(e => (e.time||'') >= '07:00').forEach(ev => {
       const l = evtToLine(ev);
       if (l) txt += l + '\n\n';
     });
 
-    // Night (next day 00:00–06:59)
     const nightEvts = nextEvts.filter(e => (e.time||'') < '07:00');
     if (nightEvts.length) {
       txt += `🌙 *Nuit*\n`;
@@ -1378,7 +1569,6 @@ async function buildReport() {
       txt += '\n';
     }
 
-    // Morning (next day 07:00+)
     const morningEvts = nextEvts.filter(e => (e.time||'') >= '07:00');
     if (morningEvts.length) {
       txt += `🌅 *Matin - ${nextLabel}*\n\n`;
@@ -1386,6 +1576,14 @@ async function buildReport() {
     }
 
     ta.value = txt.trimEnd();
+
+    // Auto-save
+    try {
+      await grist.upsertReport(curDate, txt.trimEnd());
+      document.getElementById('rp-auto-saved').style.display = 'block';
+      setTimeout(() => { const el = document.getElementById('rp-auto-saved'); if (el) el.style.display = 'none'; }, 3000);
+    } catch {}
+
   } catch (e) {
     ta.value = `❌ Erreur : ${e.message}`;
   }
@@ -1393,7 +1591,7 @@ async function buildReport() {
 
 async function copyReport() {
   const txt = document.getElementById('report-text').value;
-  if (!txt || txt.startsWith('⏳')) { toast('⚠️ Générez d\'abord le rapport'); return; }
+  if (!txt || txt.startsWith('⏳')) { toast('⚠️ Génération en cours…'); return; }
   try {
     await navigator.clipboard.writeText(txt);
     toast('📋 Copié dans le presse-papiers !');
@@ -1406,11 +1604,11 @@ async function copyReport() {
 
 async function saveReport() {
   const txt = document.getElementById('report-text').value;
-  if (!txt || txt.startsWith('⏳')) { toast('⚠️ Générez d\'abord le rapport'); return; }
+  if (!txt || txt.startsWith('⏳')) { toast('⚠️ Génération en cours…'); return; }
   try {
     await grist.upsertReport(curDate, txt);
     toast('💾 Rapport sauvegardé !');
-    loadArchive();
+    archiveData = [];
   } catch (e) { toast('❌ ' + e.message, 3500); }
 }
 
@@ -1458,12 +1656,6 @@ function closeRV() {
   curRvId = null;
 }
 
-async function copyRV() {
-  const txt = document.getElementById('rv-text').textContent;
-  try { await navigator.clipboard.writeText(txt); toast('📋 Copié !'); }
-  catch { toast('❌ Impossible de copier'); }
-}
-
 async function deleteRV() {
   if (!curRvId || !confirm('Supprimer ce rapport ?')) return;
   try {
@@ -1472,6 +1664,12 @@ async function deleteRV() {
     closeRV();
     loadArchive();
   } catch (e) { toast('❌ ' + e.message, 3500); }
+}
+
+async function copyRV() {
+  const txt = document.getElementById('rv-text').textContent;
+  try { await navigator.clipboard.writeText(txt); toast('📋 Copié !'); }
+  catch { toast('❌ Impossible de copier'); }
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -1603,8 +1801,24 @@ async function loadDash() {
     const vegNew   = new Set();
     const vegKnown = new Set();
     dates.forEach(d => {
-      (byDate[d] || []).filter(e => e.type === 'veggies' && e.ingredient).forEach(e => {
-        (e.is_new ? vegNew : vegKnown).add(e.ingredient.trim().toLowerCase());
+      (byDate[d] || []).filter(e => e.type === 'veggies' || e.type === 'lunch').forEach(e => {
+        // New JSON format
+        if (e.notes) {
+          try {
+            const items = JSON.parse(e.notes);
+            items.forEach(it => {
+              if (!it.n) return;
+              (it.isNew !== false ? vegNew : vegKnown).add(it.n.trim().toLowerCase());
+            });
+            return;
+          } catch {}
+        }
+        // Legacy: split by comma
+        if (e.ingredient) {
+          e.ingredient.split(',').map(s => s.trim().toLowerCase()).filter(Boolean).forEach(name => {
+            (e.is_new !== false ? vegNew : vegKnown).add(name);
+          });
+        }
       });
     });
     // known overrides new if appeared as both
@@ -1845,6 +2059,124 @@ async function loadDash() {
     document.getElementById('dash-body').innerHTML =
       `<div class="dash-loading">❌ Erreur : ${e.message}</div>`;
   }
+}
+
+// ══════════════════════════════════════════════════════════════
+//  PROGRAMME
+// ══════════════════════════════════════════════════════════════
+function renderProgram() {
+  const body = document.getElementById('program-body');
+  const name = cfg.babyName || 'Bébé';
+  body.innerHTML = `<div class="program-wrap">
+
+    <div class="prog-total">
+      <span>🍼</span>
+      Objectif lait journalier : ~1 020 ml
+    </div>
+
+    <div class="prog-card">
+      <div class="prog-icon">🌙</div>
+      <div class="prog-body">
+        <div class="prog-time">Nuit</div>
+        <div class="prog-title">Réveils nocturnes</div>
+        <div class="prog-detail">
+          Réveil 1 → <strong>180 ml</strong> + 5 cuillères<br>
+          Réveil 2 → <strong>150 ml</strong> + 4 cuillères<br>
+          Réveil 3 → <strong>90 ml</strong> + 3 cuillères
+        </div>
+      </div>
+    </div>
+
+    <div class="prog-card">
+      <div class="prog-icon">⏰</div>
+      <div class="prog-body">
+        <div class="prog-time">6h45 – 8h00</div>
+        <div class="prog-title">Lever + Petit-déjeuner</div>
+        <div class="prog-detail">Biberon <strong>210 ml</strong></div>
+      </div>
+    </div>
+
+    <div class="prog-card">
+      <div class="prog-icon">😴</div>
+      <div class="prog-body">
+        <div class="prog-time">Dès 8h30</div>
+        <div class="prog-title">Sieste du matin</div>
+        <div class="prog-detail">Durée : 45 min à 1h30 · Guetter les signes de fatigue</div>
+        <div class="prog-warn">⏰ Réveiller à 10h45 au plus tard</div>
+      </div>
+    </div>
+
+    <div class="prog-card">
+      <div class="prog-icon">🥣</div>
+      <div class="prog-body">
+        <div class="prog-time">11h00 – 11h30</div>
+        <div class="prog-title">Déjeuner</div>
+        <div class="prog-detail">
+          Nouvel aliment : <strong>2–5 cuillères</strong><br>
+          Aliment connu : <strong>30 g</strong> de purée<br>
+          Puis biberon <strong>210 ml</strong>
+        </div>
+      </div>
+    </div>
+
+    <div class="prog-card">
+      <div class="prog-icon">😴</div>
+      <div class="prog-body">
+        <div class="prog-time">12h00 – 12h30</div>
+        <div class="prog-title">Sieste après-déjeuner</div>
+        <div class="prog-detail">Durée : ~2 heures · De préférence dans son lit</div>
+        <div class="prog-warn">⏰ Réveiller à 15h30 au plus tard</div>
+      </div>
+    </div>
+
+    <div class="prog-card">
+      <div class="prog-icon">🍼</div>
+      <div class="prog-body">
+        <div class="prog-time">15h00 – 15h45</div>
+        <div class="prog-title">Goûter</div>
+        <div class="prog-detail">Biberon <strong>180 ml</strong></div>
+      </div>
+    </div>
+
+    <div class="prog-card">
+      <div class="prog-icon">😴</div>
+      <div class="prog-body">
+        <div class="prog-time">~17h00</div>
+        <div class="prog-title">Micro-sieste</div>
+        <div class="prog-detail">Durée : 30 min à 1h · En sortie / poussette</div>
+        <div class="prog-warn">⛔ Jamais de dodo après 18h00</div>
+      </div>
+    </div>
+
+    <div class="prog-card">
+      <div class="prog-icon">🛁</div>
+      <div class="prog-body">
+        <div class="prog-time">18h00</div>
+        <div class="prog-title">Bain</div>
+        <div class="prog-detail">Rituel : volets → câlin → lit → partir</div>
+      </div>
+    </div>
+
+    <div class="prog-card">
+      <div class="prog-icon">🌙</div>
+      <div class="prog-body">
+        <div class="prog-time">18h30 – 18h45</div>
+        <div class="prog-title">Dîner</div>
+        <div class="prog-detail">Biberon <strong>240 ml</strong></div>
+      </div>
+    </div>
+
+    <div class="prog-card">
+      <div class="prog-icon">🌜</div>
+      <div class="prog-body">
+        <div class="prog-time">19h15 – 19h30</div>
+        <div class="prog-title">Coucher</div>
+        <div class="prog-detail">Gazouille / chouine → laisser s'endormir seul</div>
+        <span class="prog-badge">Cible : 19h15–19h30</span>
+      </div>
+    </div>
+
+  </div>`;
 }
 
 // ══════════════════════════════════════════════════════════════
