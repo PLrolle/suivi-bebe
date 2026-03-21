@@ -2025,7 +2025,6 @@ async function loadDash() {
         <div class="stat-row">
           <div class="stat-item"><div class="sv">${avgMilk} ml</div><div class="sl">Moyenne / jour</div></div>
           <div class="stat-item"><div class="sv">${Math.max(...milkSeries)} ml</div><div class="sl">Maximum</div></div>
-          <div class="stat-item"><div class="sv">${milkDays.filter(v => v >= 1020).length}/${dates.length}</div><div class="sl">Objectif atteint</div></div>
         </div>
         <canvas id="chart-milk"></canvas>
       </div>
@@ -2079,22 +2078,6 @@ async function loadDash() {
     </div>`;
 
     // ── Inline chart plugins ───────────────────────────────────
-    // Reference line at 1020ml for milk chart
-    const milkRefPlugin = {
-      id: 'milkRef',
-      afterDraw(ch) {
-        const { ctx, chartArea: { left, right }, scales: { y } } = ch;
-        const yPos = y.getPixelForValue(1020);
-        ctx.save();
-        ctx.setLineDash([5, 4]); ctx.strokeStyle = '#fc8181'; ctx.lineWidth = 1.5;
-        ctx.beginPath(); ctx.moveTo(left, yPos); ctx.lineTo(right, yPos); ctx.stroke();
-        ctx.setLineDash([]);
-        ctx.fillStyle = '#fc8181'; ctx.font = 'bold 10px sans-serif';
-        ctx.fillText('1 020 ml', left + 4, yPos - 4);
-        ctx.restore();
-      }
-    };
-
     // Target zone 19h15–19h30 for bedtime chart
     const bedZonePlugin = {
       id: 'bedZone',
@@ -2124,13 +2107,12 @@ async function loadDash() {
     destroyChart('milk');
     dashCharts.milk = new Chart(document.getElementById('chart-milk'), {
       type: 'bar',
-      plugins: [milkRefPlugin],
       data: {
         labels,
         datasets: [{
           data: milkSeries,
           backgroundColor: milkSeries.map(v =>
-            v >= 1020 ? 'rgba(72,187,120,.75)' : v === 0 ? 'rgba(226,232,240,.6)' : 'rgba(102,126,234,.75)'
+            v === 0 ? 'rgba(226,232,240,.6)' : 'rgba(102,126,234,.75)'
           ),
           borderRadius: 6, borderSkipped: false,
         }]
