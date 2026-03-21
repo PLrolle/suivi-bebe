@@ -518,6 +518,11 @@
       <input type="text" id="s-doc" placeholder="ex : dSj3hK2mxYpQ…" autocomplete="off">
       <div class="hint">Visible dans l'URL : docs.getgrist.com/<strong>[ID ICI]</strong>/…</div>
     </div>
+    <div class="form-group">
+      <label>URL du proxy <span style="font-weight:400;text-transform:none;font-size:11px">(optionnel — requis sur iPhone)</span></label>
+      <input type="url" id="s-proxy" placeholder="https://suivi-bebe.moncompte.workers.dev" autocomplete="off">
+      <div class="hint">→ Voir <strong>worker.js</strong> dans le repo GitHub pour les instructions de déploiement Cloudflare</div>
+    </div>
     <button class="btn-primary" id="setup-btn" onclick="setupSave()">Connecter et initialiser Grist</button>
     <div id="setup-err"></div>
     <div style="height:20px;"></div>
@@ -797,10 +802,10 @@ function showScreen(id) {
 //  GRIST API
 // ══════════════════════════════════════════════════════════════
 class Grist {
-  constructor(key, doc) {
+  constructor(key, doc, proxyUrl) {
     this.key = key;
     this.doc = doc;
-    this.base = 'https://docs.getgrist.com/api';
+    this.base = (proxyUrl ? proxyUrl.replace(/\/$/, '') : 'https://docs.getgrist.com') + '/api';
   }
 
   async req(method, path, body) {
@@ -935,9 +940,10 @@ function goSetup() {
 async function setupSave() {
   const babyName = (document.getElementById('s-name').value.trim()) || 'Bébé';
   const babyDob  = document.getElementById('s-dob').value.trim();
-  const pin = document.getElementById('s-pin').value.trim();
-  const key = document.getElementById('s-key').value.trim();
-  const doc = document.getElementById('s-doc').value.trim();
+  const pin      = document.getElementById('s-pin').value.trim();
+  const key      = document.getElementById('s-key').value.trim();
+  const doc      = document.getElementById('s-doc').value.trim();
+  const proxy    = document.getElementById('s-proxy').value.trim();
   const errEl = document.getElementById('setup-err');
   const btn   = document.getElementById('setup-btn');
 
@@ -950,9 +956,9 @@ async function setupSave() {
   errEl.textContent = '';
 
   try {
-    const api = new Grist(key, doc);
+    const api = new Grist(key, doc, proxy);
     await api.initTables();
-    cfg = { pin, apiKey: key, docId: doc, babyName, babyDob, ready: true };
+    cfg = { pin, apiKey: key, docId: doc, proxyUrl: proxy, babyName, babyDob, ready: true };
     localStorage.setItem(CFG_KEY, JSON.stringify(cfg));
     grist = api;
     toast('✅ Configuration réussie !');
@@ -968,16 +974,18 @@ async function setupSave() {
 //  APP BOOT
 // ══════════════════════════════════════════════════════════════
 function bootApp() {
-  if (!grist) grist = new Grist(cfg.apiKey, cfg.docId);
+  if (!grist) grist = new Grist(cfg.apiKey, cfg.docId, cfg.proxyUrl);
   // Update PIN screen title with baby name (for next logout)
   const name = cfg.babyName || 'Bébé';
   const pinTitle = document.getElementById('pin-title');
   if (pinTitle) pinTitle.textContent = `Suivi ${name}`;
   // Pre-fill setup form if re-opening settings
-  const sName = document.getElementById('s-name');
-  const sDob  = document.getElementById('s-dob');
-  if (sName && cfg.babyName) sName.value = cfg.babyName;
-  if (sDob  && cfg.babyDob)  sDob.value  = cfg.babyDob;
+  const sName  = document.getElementById('s-name');
+  const sDob   = document.getElementById('s-dob');
+  const sProxy = document.getElementById('s-proxy');
+  if (sName  && cfg.babyName)  sName.value  = cfg.babyName;
+  if (sDob   && cfg.babyDob)   sDob.value   = cfg.babyDob;
+  if (sProxy && cfg.proxyUrl)  sProxy.value = cfg.proxyUrl;
   showScreen('app-screen');
   updateHeader();
   refreshDay();
