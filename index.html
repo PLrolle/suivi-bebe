@@ -1,0 +1,1864 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Suivi Bébé">
+  <link rel="manifest" href="manifest.json">
+  <title>🍼 Suivi Bébé</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+    :root {
+      --primary: #667eea;
+      --primary-dark: #4f63d2;
+      --accent: #ff8a65;
+      --bg: #f0f2f8;
+      --card: #ffffff;
+      --text: #2d3748;
+      --muted: #718096;
+      --border: #e2e8f0;
+      --success: #48bb78;
+      --danger: #fc8181;
+      --warn: #f6ad55;
+      --nav-h: 62px;
+      --header-h: 56px;
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100dvh;
+      max-width: 480px;
+      margin: 0 auto;
+      overflow-x: hidden;
+    }
+
+    /* ── SCREENS ── */
+    .screen { display: none; min-height: 100dvh; flex-direction: column; }
+    .screen.active { display: flex; }
+
+    /* ── PIN ── */
+    #pin-screen {
+      align-items: center; justify-content: center;
+      padding: 32px 24px;
+      background: linear-gradient(160deg, #667eea 0%, #764ba2 100%);
+      gap: 0;
+    }
+    .pin-logo { font-size: 72px; filter: drop-shadow(0 4px 12px rgba(0,0,0,.2)); margin-bottom: 16px; }
+    .pin-title { color: #fff; font-size: 26px; font-weight: 700; letter-spacing: -0.5px; }
+    .pin-sub { color: rgba(255,255,255,.75); font-size: 15px; margin-top: 4px; margin-bottom: 36px; }
+    .pin-dots { display: flex; gap: 18px; margin-bottom: 36px; }
+    .pin-dot {
+      width: 18px; height: 18px; border-radius: 50%;
+      background: rgba(255,255,255,.25);
+      border: 2px solid rgba(255,255,255,.6);
+      transition: all .2s;
+    }
+    .pin-dot.filled { background: #fff; border-color: #fff; transform: scale(1.1); }
+    .pin-pad { display: grid; grid-template-columns: repeat(3, 76px); gap: 14px; }
+    .pin-btn {
+      width: 76px; height: 76px; border-radius: 50%; border: none;
+      background: rgba(255,255,255,.18); color: #fff;
+      font-size: 26px; font-weight: 600; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: background .12s, transform .1s;
+      backdrop-filter: blur(4px);
+    }
+    .pin-btn:active { background: rgba(255,255,255,.38); transform: scale(.93); }
+    .pin-btn.del { font-size: 22px; }
+    .pin-err { color: #ffd700; font-size: 14px; margin-top: 20px; height: 20px; transition: opacity .3s; opacity: 0; }
+    .pin-err.show { opacity: 1; }
+    .pin-setup-link {
+      color: rgba(255,255,255,.65); font-size: 13px; margin-top: 24px;
+      background: none; border: none; cursor: pointer; text-decoration: underline;
+    }
+
+    /* ── SETUP ── */
+    #setup-screen { background: var(--bg); padding: 24px; overflow-y: auto; }
+    .setup-head { text-align: center; padding: 20px 0 28px; }
+    .setup-emoji { font-size: 52px; display: block; margin-bottom: 10px; }
+    .setup-head h1 { font-size: 22px; font-weight: 700; }
+    .setup-head p { color: var(--muted); font-size: 14px; margin-top: 6px; line-height: 1.5; }
+    .setup-steps {
+      background: #ebf4ff; border: 1px solid #bee3f8; border-radius: 14px;
+      padding: 14px 16px; margin-bottom: 20px; font-size: 13px; color: #2b6cb0; line-height: 1.9;
+    }
+    .setup-steps strong { display: block; margin-bottom: 4px; font-size: 14px; }
+    .form-group { margin-bottom: 16px; }
+    .form-group label {
+      display: block; font-size: 12px; font-weight: 700; color: var(--muted);
+      text-transform: uppercase; letter-spacing: .6px; margin-bottom: 6px;
+    }
+    .form-group input, .form-group select, .form-group textarea {
+      width: 100%; padding: 13px 15px;
+      border: 1.5px solid var(--border); border-radius: 12px;
+      font-size: 15px; color: var(--text); background: var(--card);
+      outline: none; transition: border-color .2s; appearance: none;
+    }
+    .form-group input:focus, .form-group select:focus, .form-group textarea:focus { border-color: var(--primary); }
+    .form-group .hint { font-size: 12px; color: var(--muted); margin-top: 5px; line-height: 1.4; }
+    .btn-primary {
+      background: var(--primary); color: #fff; border: none;
+      border-radius: 13px; padding: 15px 24px; font-size: 16px;
+      font-weight: 600; cursor: pointer; width: 100%;
+      transition: background .2s, transform .1s;
+    }
+    .btn-primary:active { background: var(--primary-dark); transform: scale(.98); }
+    .btn-secondary {
+      background: var(--card); color: var(--primary);
+      border: 1.5px solid var(--primary); border-radius: 13px;
+      padding: 13px 24px; font-size: 15px; font-weight: 600;
+      cursor: pointer; width: 100%; transition: all .2s;
+    }
+    #setup-err { color: var(--danger); font-size: 13px; text-align: center; margin-top: 10px; min-height: 20px; }
+
+    /* ── MAIN APP ── */
+    #app-screen { background: var(--bg); }
+
+    header {
+      position: sticky; top: 0; z-index: 100;
+      background: var(--card); border-bottom: 1px solid var(--border);
+      height: var(--header-h); padding: 0 12px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .hdr-nav { display: flex; align-items: center; gap: 6px; }
+    .date-btn {
+      width: 34px; height: 34px; border: none;
+      background: var(--bg); border-radius: 9px;
+      font-size: 20px; color: var(--primary);
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+    }
+    .date-btn:active { background: var(--border); }
+    #header-date {
+      font-weight: 700; font-size: 16px; min-width: 130px;
+      text-align: center; cursor: pointer;
+    }
+    .hdr-actions { display: flex; gap: 4px; }
+    .icon-btn {
+      width: 36px; height: 36px; border: none; background: none;
+      border-radius: 9px; font-size: 18px; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      color: var(--muted); transition: background .15s;
+    }
+    .icon-btn:active { background: var(--bg); }
+
+    main {
+      flex: 1; overflow-y: auto;
+      padding-bottom: calc(var(--nav-h) + var(--safe-bottom) + 76px);
+    }
+
+    /* ── TABS ── */
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
+    /* ── TIMELINE ── */
+    .day-empty {
+      text-align: center; padding: 64px 24px; color: var(--muted);
+    }
+    .day-empty .big { font-size: 52px; display: block; margin-bottom: 14px; }
+    .day-empty p { font-size: 14px; line-height: 1.6; }
+
+    .event-list { padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; }
+
+    .section-label {
+      font-size: 11px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 1px; color: var(--muted); padding: 10px 2px 2px;
+    }
+
+    .event-card {
+      background: var(--card); border-radius: 14px;
+      padding: 12px 14px;
+      display: flex; align-items: center; gap: 12px;
+      box-shadow: 0 1px 4px rgba(0,0,0,.06);
+      transition: box-shadow .15s;
+    }
+    .event-card:active { box-shadow: 0 2px 8px rgba(0,0,0,.1); }
+    .ev-icon { font-size: 24px; flex-shrink: 0; width: 34px; text-align: center; }
+    .ev-body { flex: 1; min-width: 0; }
+    .ev-title { font-weight: 600; font-size: 14px; }
+    .ev-detail { font-size: 13px; color: var(--muted); margin-top: 2px; line-height: 1.4; }
+    .dur-badge {
+      display: inline-block; background: #ebf4ff; color: var(--primary);
+      font-size: 12px; font-weight: 700; padding: 2px 8px;
+      border-radius: 20px; margin-top: 4px;
+    }
+    .ev-time { font-size: 14px; font-weight: 700; color: var(--primary); flex-shrink: 0; }
+    .ev-actions { display: flex; gap: 4px; flex-shrink: 0; }
+    .ev-btn {
+      width: 30px; height: 30px; border: none; background: var(--bg);
+      border-radius: 8px; cursor: pointer; font-size: 14px;
+      display: flex; align-items: center; justify-content: center;
+      color: var(--muted); transition: background .12s;
+    }
+    .ev-btn:active { background: var(--border); }
+
+    /* ── BOTTOM NAV ── */
+    nav {
+      position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
+      width: 100%; max-width: 480px;
+      height: calc(var(--nav-h) + var(--safe-bottom));
+      background: var(--card); border-top: 1px solid var(--border);
+      display: flex; align-items: flex-start; padding-top: 4px; z-index: 100;
+    }
+    .nav-tab {
+      flex: 1; border: none; background: none; cursor: pointer;
+      display: flex; flex-direction: column; align-items: center;
+      gap: 2px; padding: 8px 4px; font-size: 10px; font-weight: 500;
+      color: var(--muted); transition: color .2s;
+    }
+    .nav-tab .ni { font-size: 24px; }
+    .nav-tab.active { color: var(--primary); }
+
+    /* ── FAB ── */
+    #fab {
+      position: fixed;
+      bottom: calc(var(--nav-h) + var(--safe-bottom) + 14px);
+      right: 18px; width: 58px; height: 58px;
+      border-radius: 50%; background: var(--accent); color: #fff;
+      border: none; font-size: 30px; cursor: pointer;
+      box-shadow: 0 4px 18px rgba(255,138,101,.45);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 99; transition: transform .18s;
+    }
+    #fab:active { transform: scale(.9); }
+
+    /* ── MODAL ── */
+    .overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,.45); z-index: 200;
+      align-items: flex-end; justify-content: center;
+    }
+    .overlay.open { display: flex; }
+    .modal-sheet {
+      background: var(--card); border-radius: 22px 22px 0 0;
+      width: 100%; max-width: 480px; max-height: 92dvh;
+      overflow-y: auto; padding: 6px 20px 32px;
+      animation: slideUp .28s cubic-bezier(.32,1,.28,1);
+    }
+    @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+    .modal-handle {
+      width: 38px; height: 4px; background: var(--border);
+      border-radius: 2px; margin: 10px auto 18px;
+    }
+    .modal-title { font-size: 19px; font-weight: 700; margin-bottom: 18px; }
+
+    /* type grid */
+    .type-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 20px; }
+    .type-btn {
+      aspect-ratio: 1; border: 2px solid var(--border);
+      border-radius: 14px; background: var(--bg);
+      cursor: pointer; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; gap: 4px;
+      font-size: 10px; color: var(--muted); font-weight: 600;
+      transition: all .15s;
+    }
+    .type-btn .ti { font-size: 26px; }
+    .type-btn.sel { border-color: var(--primary); background: #ebf4ff; color: var(--primary); }
+
+    /* form fields */
+    #evt-fields { display: flex; flex-direction: column; gap: 14px; }
+    .field-row { display: flex; gap: 10px; }
+    .field-row .form-group { flex: 1; }
+    .ref-box {
+      background: #f0fff4; border: 1px solid #9ae6b4;
+      border-radius: 10px; padding: 10px 12px;
+      font-size: 12px; color: #276749; line-height: 1.6;
+    }
+    .warn-box {
+      background: #fffbeb; border: 1px solid #f6e05e;
+      border-radius: 10px; padding: 10px 12px;
+      font-size: 12px; color: #744210; line-height: 1.6;
+    }
+
+    /* ── REPORT TAB ── */
+    .report-section { padding: 14px; }
+    .report-controls { display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
+    .btn-sm {
+      padding: 9px 14px; border-radius: 10px; font-size: 13px;
+      font-weight: 600; cursor: pointer; border: none; transition: all .15s;
+    }
+    .btn-sm:active { transform: scale(.95); }
+    .btn-blue { background: var(--primary); color: #fff; }
+    .btn-green { background: var(--success); color: #fff; }
+    .btn-orange { background: var(--accent); color: #fff; }
+    #report-text {
+      width: 100%; min-height: 320px;
+      border: 1.5px solid var(--border); border-radius: 14px;
+      padding: 14px; font-size: 14px; font-family: inherit;
+      resize: vertical; color: var(--text); background: var(--card);
+      line-height: 1.7;
+    }
+
+    /* ── ARCHIVE TAB ── */
+    .archive-list { padding: 14px; display: flex; flex-direction: column; gap: 8px; }
+    .archive-card {
+      background: var(--card); border-radius: 14px;
+      padding: 14px 16px; display: flex; align-items: center;
+      gap: 12px; cursor: pointer; box-shadow: 0 1px 4px rgba(0,0,0,.06);
+      transition: box-shadow .15s;
+    }
+    .archive-card:active { box-shadow: 0 2px 10px rgba(0,0,0,.12); }
+    .arch-icon { font-size: 26px; }
+    .arch-date { font-weight: 600; font-size: 14px; }
+    .arch-meta { font-size: 12px; color: var(--muted); margin-top: 2px; }
+    .arch-arr { color: var(--muted); margin-left: auto; font-size: 18px; }
+
+    /* ── REPORT VIEW ── */
+    #report-view {
+      display: none; position: fixed; inset: 0;
+      background: var(--bg); z-index: 300; flex-direction: column;
+    }
+    #report-view.open { display: flex; }
+    .rv-header {
+      background: var(--card); border-bottom: 1px solid var(--border);
+      padding: 14px 16px; display: flex; align-items: center; gap: 12px;
+      flex-shrink: 0;
+    }
+    .rv-back {
+      width: 36px; height: 36px; border: none; background: var(--bg);
+      border-radius: 9px; font-size: 20px; color: var(--primary);
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+    }
+    #rv-title { font-weight: 700; font-size: 16px; flex: 1; }
+    .rv-body { flex: 1; overflow-y: auto; padding: 16px; }
+    .rv-text {
+      background: var(--card); border-radius: 14px;
+      padding: 16px; white-space: pre-wrap;
+      font-size: 14px; line-height: 1.75;
+    }
+    .rv-actions {
+      padding: 14px 16px calc(14px + var(--safe-bottom));
+      display: flex; gap: 10px; background: var(--card);
+      border-top: 1px solid var(--border);
+    }
+
+    /* ── LOADING / TOAST ── */
+    .loading { text-align: center; padding: 48px 24px; color: var(--muted); }
+    .spinner {
+      width: 32px; height: 32px; border: 3px solid var(--border);
+      border-top-color: var(--primary); border-radius: 50%;
+      animation: spin .8s linear infinite; margin: 0 auto 12px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    #toast {
+      position: fixed; bottom: calc(var(--nav-h) + var(--safe-bottom) + 82px);
+      left: 50%; transform: translateX(-50%) translateY(16px);
+      background: #1a202c; color: #fff;
+      padding: 10px 20px; border-radius: 22px;
+      font-size: 14px; font-weight: 500;
+      opacity: 0; transition: all .28s; z-index: 500;
+      white-space: nowrap; pointer-events: none;
+      box-shadow: 0 4px 20px rgba(0,0,0,.2);
+    }
+    #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    /* ── DATE PICKER MODAL ── */
+    #date-picker-overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,.4); z-index: 250;
+      align-items: center; justify-content: center; padding: 24px;
+    }
+    #date-picker-overlay.open { display: flex; }
+    #date-picker-card {
+      background: var(--card); border-radius: 18px;
+      padding: 24px; width: 100%; max-width: 320px;
+    }
+    #date-picker-card h3 { font-size: 17px; margin-bottom: 16px; }
+    #date-picker-input {
+      width: 100%; padding: 12px; border: 1.5px solid var(--border);
+      border-radius: 12px; font-size: 16px; font-family: inherit; outline: none;
+    }
+    #date-picker-input:focus { border-color: var(--primary); }
+    .dp-btns { display: flex; gap: 10px; margin-top: 16px; }
+
+    /* ── MISC ── */
+    .flex-btns { display: flex; gap: 10px; margin-top: 20px; }
+    .flex-btns > * { flex: 1; }
+
+    /* ── DASHBOARD ── */
+    .dash-wrap { padding: 14px; display: flex; flex-direction: column; gap: 14px; }
+
+    /* Summary cards row */
+    .dash-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+    .dash-card {
+      background: var(--card); border-radius: 14px;
+      padding: 14px 10px; text-align: center;
+      box-shadow: 0 1px 4px rgba(0,0,0,.06);
+    }
+    .dash-card .dc-icon { font-size: 26px; display: block; margin-bottom: 6px; }
+    .dash-card .dc-val  { font-size: 18px; font-weight: 800; color: var(--text); line-height: 1.1; }
+    .dash-card .dc-sub  { font-size: 10px; color: var(--muted); margin-top: 3px; font-weight: 500; text-transform: uppercase; letter-spacing: .4px; }
+
+    /* Progress bar */
+    .progress-wrap { margin-top: 6px; }
+    .progress-bar {
+      height: 5px; border-radius: 3px;
+      background: var(--border); overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%; border-radius: 3px;
+      background: linear-gradient(90deg, var(--primary), #a78bfa);
+      transition: width .6s ease;
+    }
+    .progress-fill.warn  { background: linear-gradient(90deg, var(--warn), #f6ad55); }
+    .progress-fill.good  { background: linear-gradient(90deg, var(--success), #68d391); }
+
+    /* Chart cards */
+    .chart-card {
+      background: var(--card); border-radius: 14px;
+      padding: 16px; box-shadow: 0 1px 4px rgba(0,0,0,.06);
+    }
+    .chart-card h3 {
+      font-size: 13px; font-weight: 700; color: var(--muted);
+      text-transform: uppercase; letter-spacing: .6px; margin-bottom: 14px;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .chart-card canvas { max-height: 180px; }
+
+    /* Veggies section */
+    .veg-section { background: var(--card); border-radius: 14px; padding: 16px; box-shadow: 0 1px 4px rgba(0,0,0,.06); }
+    .veg-section h3 { font-size: 13px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .6px; margin-bottom: 12px; }
+    .veg-group { margin-bottom: 12px; }
+    .veg-group-label { font-size: 12px; font-weight: 700; color: var(--text); margin-bottom: 8px; }
+    .veg-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+    .veg-tag {
+      padding: 4px 10px; border-radius: 20px;
+      font-size: 12px; font-weight: 600;
+    }
+    .veg-tag.new   { background: #fef3c7; color: #92400e; }
+    .veg-tag.known { background: #d1fae5; color: #065f46; }
+    .veg-empty { color: var(--muted); font-size: 13px; font-style: italic; }
+
+    /* Dashboard loading */
+    .dash-loading { text-align: center; padding: 48px; color: var(--muted); }
+
+    /* Stats row inside chart card */
+    .stat-row { display: flex; justify-content: space-around; margin-bottom: 12px; }
+    .stat-item { text-align: center; }
+    .stat-item .sv { font-size: 16px; font-weight: 800; color: var(--primary); }
+    .stat-item .sl { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  </style>
+</head>
+<body>
+
+<!-- ═══════════════ PIN SCREEN ═══════════════ -->
+<div id="pin-screen" class="screen">
+  <div class="pin-logo">🍼</div>
+  <div class="pin-title" id="pin-title">Suivi Bébé</div>
+  <div class="pin-sub">Entrez votre code secret</div>
+  <div class="pin-dots">
+    <div class="pin-dot" id="pd0"></div>
+    <div class="pin-dot" id="pd1"></div>
+    <div class="pin-dot" id="pd2"></div>
+    <div class="pin-dot" id="pd3"></div>
+  </div>
+  <div class="pin-pad">
+    <button class="pin-btn" onclick="pinKey(1)">1</button>
+    <button class="pin-btn" onclick="pinKey(2)">2</button>
+    <button class="pin-btn" onclick="pinKey(3)">3</button>
+    <button class="pin-btn" onclick="pinKey(4)">4</button>
+    <button class="pin-btn" onclick="pinKey(5)">5</button>
+    <button class="pin-btn" onclick="pinKey(6)">6</button>
+    <button class="pin-btn" onclick="pinKey(7)">7</button>
+    <button class="pin-btn" onclick="pinKey(8)">8</button>
+    <button class="pin-btn" onclick="pinKey(9)">9</button>
+    <button class="pin-btn" onclick="pinKey(0)" style="grid-column:2">0</button>
+    <button class="pin-btn del" onclick="pinDel()" style="grid-column:3">⌫</button>
+  </div>
+  <div class="pin-err" id="pin-err">Code incorrect, réessayez</div>
+  <button class="pin-setup-link" onclick="goSetup()">⚙️ Première utilisation / Reconfigurer</button>
+</div>
+
+<!-- ═══════════════ SETUP SCREEN ═══════════════ -->
+<div id="setup-screen" class="screen">
+  <div style="overflow-y:auto; padding: 24px; flex:1;">
+    <div class="setup-head">
+      <span class="setup-emoji">⚙️</span>
+      <h1>Configuration</h1>
+      <p>À faire une seule fois par appareil.<br>Vos données ne quitteront jamais ce téléphone.</p>
+    </div>
+
+    <div class="setup-steps">
+      <strong>📋 Étapes Grist (5 min) :</strong>
+      1. Allez sur <strong>docs.getgrist.com</strong> → créez un compte<br>
+      2. Créez un document nommé <strong>suivi-bébé</strong><br>
+      3. Copiez l'<strong>ID du document</strong> depuis l'URL<br>
+      &nbsp;&nbsp;&nbsp;(ex: <code>dSj3hK2…</code> dans docs.getgrist.com/dSj3hK2…)<br>
+      4. Menu profil → <strong>Gestion des API</strong> → copiez la clé<br>
+      5. Collez tout ci-dessous → l'app crée les tables automatiquement ✅
+    </div>
+
+    <div class="form-group">
+      <label>Prénom du bébé</label>
+      <input type="text" id="s-name" placeholder="ex : Emma" autocomplete="off">
+    </div>
+    <div class="form-group">
+      <label>Date de naissance</label>
+      <input type="date" id="s-dob">
+      <div class="hint">Permet d'afficher l'âge dans le bilan</div>
+    </div>
+    <div class="form-group">
+      <label>Code PIN (4 chiffres)</label>
+      <input type="tel" id="s-pin" placeholder="ex : 2810" maxlength="4" inputmode="numeric" pattern="\d{4}">
+    </div>
+    <div class="form-group">
+      <label>Clé API Grist</label>
+      <input type="password" id="s-key" placeholder="Coller votre clé API…" autocomplete="off">
+      <div class="hint">Profil Grist → Gestion des API → Nouvelle clé</div>
+    </div>
+    <div class="form-group">
+      <label>ID du document Grist</label>
+      <input type="text" id="s-doc" placeholder="ex : dSj3hK2mxYpQ…" autocomplete="off">
+      <div class="hint">Visible dans l'URL : docs.getgrist.com/<strong>[ID ICI]</strong>/…</div>
+    </div>
+    <button class="btn-primary" id="setup-btn" onclick="setupSave()">Connecter et initialiser Grist</button>
+    <div id="setup-err"></div>
+    <div style="height:20px;"></div>
+    <button class="btn-secondary" onclick="showScreen('pin-screen')">← Retour</button>
+  </div>
+</div>
+
+<!-- ═══════════════ MAIN APP ═══════════════ -->
+<div id="app-screen" class="screen">
+  <header>
+    <div class="hdr-nav">
+      <button class="date-btn" onclick="changeDate(-1)" aria-label="Jour précédent">‹</button>
+      <div id="header-date" onclick="openDatePicker()">Aujourd'hui</div>
+      <button class="date-btn" onclick="changeDate(1)" aria-label="Jour suivant">›</button>
+    </div>
+    <div class="hdr-actions">
+      <button class="icon-btn" onclick="refreshDay()" title="Actualiser">🔄</button>
+      <button class="icon-btn" onclick="openSettings()" title="Paramètres">⚙️</button>
+    </div>
+  </header>
+
+  <main>
+    <!-- JOURNÉE -->
+    <div id="tab-day" class="tab-content active">
+      <div id="day-body"><div class="loading"><div class="spinner"></div>Chargement…</div></div>
+    </div>
+
+    <!-- RAPPORT -->
+    <div id="tab-report" class="tab-content">
+      <div class="report-section">
+        <p style="color:var(--muted);font-size:13px;margin-bottom:12px;">
+          Le rapport couvre la journée sélectionnée + la nuit suivante + le matin suivant.
+        </p>
+        <div class="report-controls">
+          <button class="btn-sm btn-blue" onclick="buildReport()">✨ Générer</button>
+          <button class="btn-sm btn-green" onclick="copyReport()">📋 Copier</button>
+          <button class="btn-sm btn-orange" onclick="saveReport()">💾 Sauvegarder</button>
+        </div>
+        <textarea id="report-text" placeholder="Appuyez sur ✨ Générer…"></textarea>
+      </div>
+    </div>
+
+    <!-- ARCHIVES -->
+    <div id="tab-archive" class="tab-content">
+      <div id="archive-body" class="archive-list">
+        <div class="loading"><div class="spinner"></div>Chargement…</div>
+      </div>
+    </div>
+
+    <!-- DASHBOARD -->
+    <div id="tab-dash" class="tab-content">
+      <div id="dash-body">
+        <div class="dash-loading"><div class="spinner"></div>Chargement…</div>
+      </div>
+    </div>
+  </main>
+
+  <nav>
+    <button class="nav-tab active" id="nt-day" onclick="switchTab('day')">
+      <span class="ni">📅</span><span>Journée</span>
+    </button>
+    <button class="nav-tab" id="nt-report" onclick="switchTab('report')">
+      <span class="ni">📋</span><span>Rapport</span>
+    </button>
+    <button class="nav-tab" id="nt-archive" onclick="switchTab('archive')">
+      <span class="ni">📁</span><span>Archives</span>
+    </button>
+    <button class="nav-tab" id="nt-dash" onclick="switchTab('dash')">
+      <span class="ni">📊</span><span>Bilan</span>
+    </button>
+  </nav>
+
+  <button id="fab" onclick="openModal()" aria-label="Ajouter un événement">+</button>
+</div>
+
+<!-- ═══════════════ EVENT MODAL ═══════════════ -->
+<div class="overlay" id="evt-overlay" onclick="overlayClick(event)">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="modal-title">Ajouter un événement</div>
+
+    <div class="type-grid">
+      <button class="type-btn" data-t="night_waking" onclick="pickType('night_waking')">
+        <span class="ti">🌙</span>Réveil nuit
+      </button>
+      <button class="type-btn" data-t="wake_up" onclick="pickType('wake_up')">
+        <span class="ti">⏰</span>Lever
+      </button>
+      <button class="type-btn" data-t="nap" onclick="pickType('nap')">
+        <span class="ti">😴</span>Sieste
+      </button>
+      <button class="type-btn" data-t="bottle" onclick="pickType('bottle')">
+        <span class="ti">🍼</span>Biberon
+      </button>
+      <button class="type-btn" data-t="veggies" onclick="pickType('veggies')">
+        <span class="ti">🥣</span>Légumes
+      </button>
+      <button class="type-btn" data-t="bath" onclick="pickType('bath')">
+        <span class="ti">🛁</span>Bain
+      </button>
+      <button class="type-btn" data-t="bedtime" onclick="pickType('bedtime')">
+        <span class="ti">🌜</span>Coucher
+      </button>
+      <button class="type-btn" data-t="note" onclick="pickType('note')">
+        <span class="ti">📝</span>Note
+      </button>
+    </div>
+
+    <div id="evt-fields"></div>
+
+    <div class="flex-btns">
+      <button class="btn-secondary" onclick="closeModal()">Annuler</button>
+      <button class="btn-primary" id="save-btn" onclick="saveEvt()" style="flex:2">Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ DATE PICKER ═══════════════ -->
+<div id="date-picker-overlay" onclick="dpOverlayClick(event)">
+  <div id="date-picker-card">
+    <h3>📅 Choisir une date</h3>
+    <input type="date" id="dp-input">
+    <div class="dp-btns">
+      <button class="btn-secondary" onclick="closeDp()">Annuler</button>
+      <button class="btn-primary" onclick="applyDp()">OK</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ REPORT VIEW ═══════════════ -->
+<div id="report-view">
+  <div class="rv-header">
+    <button class="rv-back" onclick="closeRV()">‹</button>
+    <span id="rv-title"></span>
+  </div>
+  <div class="rv-body">
+    <div id="rv-text" class="rv-text"></div>
+  </div>
+  <div class="rv-actions">
+    <button class="btn-primary" onclick="copyRV()" style="flex:1">📋 Copier</button>
+    <button class="btn-secondary" onclick="deleteRV()" style="flex:1;color:var(--danger);border-color:var(--danger)">🗑 Supprimer</button>
+  </div>
+</div>
+
+<!-- ═══════════════ SETTINGS MODAL ═══════════════ -->
+<div class="overlay" id="settings-overlay" onclick="settingsOverlayClick(event)">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title">⚙️ Paramètres</div>
+    <div class="form-group">
+      <label>Prénom du bébé</label>
+      <input type="text" id="set-name" placeholder="ex : Emma">
+    </div>
+    <div class="form-group">
+      <label>Date de naissance</label>
+      <input type="date" id="set-dob">
+    </div>
+    <div class="form-group">
+      <label>Nouveau code PIN</label>
+      <input type="tel" id="new-pin" placeholder="4 chiffres" maxlength="4" inputmode="numeric">
+    </div>
+    <div class="flex-btns">
+      <button class="btn-secondary" onclick="closeSettings()">Fermer</button>
+      <button class="btn-primary" onclick="saveSettings()" style="flex:2">Enregistrer</button>
+    </div>
+    <div style="margin-top:16px;"></div>
+    <button class="btn-secondary" style="color:var(--danger);border-color:var(--danger)" onclick="resetApp()">
+      🗑 Réinitialiser la configuration
+    </button>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<script>
+// ══════════════════════════════════════════════════════════════
+//  CONSTANTS & STATE
+// ══════════════════════════════════════════════════════════════
+const CFG_KEY = 'marcus_v3';
+let cfg = (() => { try { return JSON.parse(localStorage.getItem(CFG_KEY) || '{}'); } catch { return {}; } })();
+
+let grist = null;
+let curDate = todayStr();
+let events = [];          // loaded events for curDate
+let editId = null;        // event being edited
+let selType = null;       // selected event type in modal
+let archiveData = [];     // loaded reports
+let curRvId = null;       // report view id
+
+// ══════════════════════════════════════════════════════════════
+//  UTILITIES
+// ══════════════════════════════════════════════════════════════
+function todayStr() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
+function addDays(dateStr, n) {
+  const d = new Date(dateStr + 'T12:00:00');
+  d.setDate(d.getDate() + n);
+  return d.toISOString().slice(0, 10);
+}
+
+function nowHHMM() {
+  const d = new Date();
+  return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+}
+
+function hhmm2min(t) {
+  if (!t) return NaN;
+  const [h, m] = t.split(':').map(Number);
+  return h * 60 + m;
+}
+
+function calcDuration(start, end) {
+  let diff = hhmm2min(end) - hhmm2min(start);
+  if (isNaN(diff)) return null;
+  if (diff < 0) diff += 1440; // crosses midnight
+  if (diff <= 0) return null;
+  const h = Math.floor(diff / 60), m = diff % 60;
+  if (h === 0) return `${m} min`;
+  if (m === 0) return `${h}h`;
+  return `${h}h${String(m).padStart(2,'0')}`;
+}
+
+function fmtTimeFR(hhmm) {
+  if (!hhmm) return '';
+  const [h, m] = hhmm.split(':').map(Number);
+  return `${h}h${String(m).padStart(2,'0')}`;
+}
+
+function calcAge(dob) {
+  if (!dob) return null;
+  const birth = new Date(dob + 'T12:00:00');
+  const now   = new Date();
+  let months  = (now.getFullYear() - birth.getFullYear()) * 12 + (now.getMonth() - birth.getMonth());
+  if (now.getDate() < birth.getDate()) months--;
+  if (months < 0) return null;
+  const monthStart    = new Date(birth.getFullYear(), birth.getMonth() + months, birth.getDate());
+  const remainingDays = Math.floor((now - monthStart) / 86400000);
+  const weeks         = Math.floor(remainingDays / 7);
+  if (months === 0) {
+    const totalDays = Math.floor((now - birth) / 86400000);
+    return `${Math.floor(totalDays / 7)} sem.`;
+  }
+  if (weeks === 0) return `${months} mois`;
+  return `${months} mois ${weeks} sem.`;
+}
+
+const FR_DAYS   = ['dimanche','lundi','mardi','mercredi','jeudi','vendredi','samedi'];
+const FR_MONTHS = ['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
+
+function fmtDateFR(dateStr) {
+  const d = new Date(dateStr + 'T12:00:00');
+  return `${FR_DAYS[d.getDay()]} ${d.getDate()} ${FR_MONTHS[d.getMonth()]}`;
+}
+
+function fmtDateShort(dateStr) {
+  const d = new Date(dateStr + 'T12:00:00');
+  return `${d.getDate()} ${FR_MONTHS[d.getMonth()].slice(0,3)}. ${d.getFullYear()}`;
+}
+
+function toast(msg, ms = 2600) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), ms);
+}
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+// ══════════════════════════════════════════════════════════════
+//  GRIST API
+// ══════════════════════════════════════════════════════════════
+class Grist {
+  constructor(key, doc) {
+    this.key = key;
+    this.doc = doc;
+    this.base = 'https://docs.getgrist.com/api';
+  }
+
+  async req(method, path, body) {
+    const res = await fetch(this.base + path, {
+      method,
+      headers: { 'Authorization': `Bearer ${this.key}`, 'Content-Type': 'application/json' },
+      body: body !== undefined ? JSON.stringify(body) : undefined
+    });
+    if (!res.ok) {
+      const txt = await res.text().catch(() => '');
+      throw new Error(`Grist ${res.status}: ${txt.slice(0,120)}`);
+    }
+    return res.json();
+  }
+
+  async initTables() {
+    const { tables } = await this.req('GET', `/docs/${this.doc}/tables`);
+    const existing = new Set(tables.map(t => t.id));
+
+    if (!existing.has('Events')) {
+      await this.req('POST', `/docs/${this.doc}/tables`, { tables: [{ id: 'Events', columns: [
+        { id: 'date',             fields: { label: 'Date',          type: 'Text'    }},
+        { id: 'time',             fields: { label: 'Heure',         type: 'Text'    }},
+        { id: 'type',             fields: { label: 'Type',          type: 'Text'    }},
+        { id: 'quantity_ml',      fields: { label: 'Quantité ml',   type: 'Numeric' }},
+        { id: 'quantity_spoons',  fields: { label: 'Cuillères',     type: 'Numeric' }},
+        { id: 'quantity_grams',   fields: { label: 'Grammes',       type: 'Numeric' }},
+        { id: 'ingredient',       fields: { label: 'Ingrédient',    type: 'Text'    }},
+        { id: 'is_new',           fields: { label: 'Nouveau',       type: 'Bool'    }},
+        { id: 'end_time',         fields: { label: 'Heure fin',     type: 'Text'    }},
+        { id: 'nap_label',        fields: { label: 'Sieste type',   type: 'Text'    }},
+        { id: 'meal_type',        fields: { label: 'Repas',         type: 'Text'    }},
+        { id: 'notes',            fields: { label: 'Notes',         type: 'Text'    }},
+      ]}]});
+    }
+
+    if (!existing.has('Reports')) {
+      await this.req('POST', `/docs/${this.doc}/tables`, { tables: [{ id: 'Reports', columns: [
+        { id: 'date',         fields: { label: 'Date',        type: 'Text' }},
+        { id: 'report_text',  fields: { label: 'Rapport',     type: 'Text' }},
+        { id: 'generated_at', fields: { label: 'Généré le',   type: 'Text' }},
+      ]}]});
+    }
+  }
+
+  async getEvents(date) {
+    const f = encodeURIComponent(JSON.stringify({ date: [date] }));
+    const { records } = await this.req('GET', `/docs/${this.doc}/tables/Events/records?filter=${f}`);
+    return records.map(r => ({ id: r.id, ...r.fields }));
+  }
+
+  async addEvent(fields) {
+    const { records } = await this.req('POST', `/docs/${this.doc}/tables/Events/records`, { records: [{ fields }] });
+    return records[0].id;
+  }
+
+  async updateEvent(id, fields) {
+    await this.req('PATCH', `/docs/${this.doc}/tables/Events/records`, { records: [{ id, fields }] });
+  }
+
+  async deleteEvent(id) {
+    await this.req('DELETE', `/docs/${this.doc}/tables/Events/records`, { records: [id] });
+  }
+
+  async getReports() {
+    const { records } = await this.req('GET', `/docs/${this.doc}/tables/Reports/records`);
+    return records.map(r => ({ id: r.id, ...r.fields }))
+      .filter(r => r.date)
+      .sort((a, b) => b.date.localeCompare(a.date));
+  }
+
+  async upsertReport(date, text) {
+    const f = encodeURIComponent(JSON.stringify({ date: [date] }));
+    const { records } = await this.req('GET', `/docs/${this.doc}/tables/Reports/records?filter=${f}`);
+    const ts = new Date().toISOString();
+    if (records.length > 0) {
+      await this.req('PATCH', `/docs/${this.doc}/tables/Reports/records`,
+        { records: [{ id: records[0].id, fields: { report_text: text, generated_at: ts }}] });
+    } else {
+      await this.req('POST', `/docs/${this.doc}/tables/Reports/records`,
+        { records: [{ fields: { date, report_text: text, generated_at: ts }}] });
+    }
+  }
+
+  async deleteReport(id) {
+    await this.req('DELETE', `/docs/${this.doc}/tables/Reports/records`, { records: [id] });
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
+//  PIN
+// ══════════════════════════════════════════════════════════════
+let pinBuf = '';
+
+function pinKey(n) {
+  if (pinBuf.length >= 4) return;
+  pinBuf += String(n);
+  renderPinDots();
+  if (pinBuf.length === 4) setTimeout(checkPin, 160);
+}
+
+function pinDel() {
+  pinBuf = pinBuf.slice(0, -1);
+  renderPinDots();
+}
+
+function renderPinDots() {
+  for (let i = 0; i < 4; i++)
+    document.getElementById(`pd${i}`).classList.toggle('filled', i < pinBuf.length);
+}
+
+function checkPin() {
+  if (!cfg.ready) { goSetup(); return; }
+  if (pinBuf === cfg.pin) {
+    bootApp();
+  } else {
+    const el = document.getElementById('pin-err');
+    el.classList.add('show');
+    setTimeout(() => { el.classList.remove('show'); pinBuf = ''; renderPinDots(); }, 1600);
+    pinBuf = ''; renderPinDots();
+  }
+}
+
+function goSetup() {
+  pinBuf = ''; renderPinDots();
+  showScreen('setup-screen');
+}
+
+// ══════════════════════════════════════════════════════════════
+//  SETUP
+// ══════════════════════════════════════════════════════════════
+async function setupSave() {
+  const babyName = (document.getElementById('s-name').value.trim()) || 'Bébé';
+  const babyDob  = document.getElementById('s-dob').value.trim();
+  const pin = document.getElementById('s-pin').value.trim();
+  const key = document.getElementById('s-key').value.trim();
+  const doc = document.getElementById('s-doc').value.trim();
+  const errEl = document.getElementById('setup-err');
+  const btn   = document.getElementById('setup-btn');
+
+  errEl.textContent = '';
+  if (!/^\d{4}$/.test(pin)) { errEl.textContent = '⚠️ Le PIN doit être exactement 4 chiffres.'; return; }
+  if (!key)                  { errEl.textContent = '⚠️ La clé API est requise.'; return; }
+  if (!doc)                  { errEl.textContent = '⚠️ L\'ID du document est requis.'; return; }
+
+  btn.textContent = '⏳ Connexion à Grist…'; btn.disabled = true;
+  errEl.textContent = '';
+
+  try {
+    const api = new Grist(key, doc);
+    await api.initTables();
+    cfg = { pin, apiKey: key, docId: doc, babyName, babyDob, ready: true };
+    localStorage.setItem(CFG_KEY, JSON.stringify(cfg));
+    grist = api;
+    toast('✅ Configuration réussie !');
+    bootApp();
+  } catch (e) {
+    errEl.textContent = `❌ ${e.message}`;
+  } finally {
+    btn.textContent = 'Connecter et initialiser Grist'; btn.disabled = false;
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
+//  APP BOOT
+// ══════════════════════════════════════════════════════════════
+function bootApp() {
+  if (!grist) grist = new Grist(cfg.apiKey, cfg.docId);
+  // Update PIN screen title with baby name (for next logout)
+  const name = cfg.babyName || 'Bébé';
+  const pinTitle = document.getElementById('pin-title');
+  if (pinTitle) pinTitle.textContent = `Suivi ${name}`;
+  // Pre-fill setup form if re-opening settings
+  const sName = document.getElementById('s-name');
+  const sDob  = document.getElementById('s-dob');
+  if (sName && cfg.babyName) sName.value = cfg.babyName;
+  if (sDob  && cfg.babyDob)  sDob.value  = cfg.babyDob;
+  showScreen('app-screen');
+  updateHeader();
+  refreshDay();
+}
+
+// ══════════════════════════════════════════════════════════════
+//  DATE NAVIGATION
+// ══════════════════════════════════════════════════════════════
+function changeDate(delta) {
+  curDate = addDays(curDate, delta);
+  updateHeader();
+  refreshDay();
+}
+
+function updateHeader() {
+  const today = todayStr(), yesterday = addDays(today, -1);
+  let label;
+  if      (curDate === today)     label = "Aujourd'hui";
+  else if (curDate === yesterday) label = 'Hier';
+  else {
+    const d = new Date(curDate + 'T12:00:00');
+    label = `${FR_DAYS[d.getDay()].slice(0,3)}. ${d.getDate()} ${FR_MONTHS[d.getMonth()].slice(0,3)}.`;
+  }
+  document.getElementById('header-date').textContent = label;
+}
+
+// Date picker
+function openDatePicker() {
+  document.getElementById('dp-input').value = curDate;
+  document.getElementById('date-picker-overlay').classList.add('open');
+}
+function closeDp() { document.getElementById('date-picker-overlay').classList.remove('open'); }
+function dpOverlayClick(e) { if (e.target === e.currentTarget) closeDp(); }
+function applyDp() {
+  const v = document.getElementById('dp-input').value;
+  if (v) { curDate = v; updateHeader(); refreshDay(); }
+  closeDp();
+}
+
+// ══════════════════════════════════════════════════════════════
+//  TABS
+// ══════════════════════════════════════════════════════════════
+function switchTab(tab) {
+  ['day','report','archive','dash'].forEach(t => {
+    document.getElementById(`tab-${t}`).classList.toggle('active', t === tab);
+    document.getElementById(`nt-${t}`).classList.toggle('active', t === tab);
+  });
+  document.getElementById('fab').style.display = tab === 'day' ? 'flex' : 'none';
+  if (tab === 'archive') loadArchive();
+  if (tab === 'report')  buildReport();
+  if (tab === 'dash')    loadDash();
+}
+
+// ══════════════════════════════════════════════════════════════
+//  EVENTS – LOAD & RENDER
+// ══════════════════════════════════════════════════════════════
+async function refreshDay() {
+  const body = document.getElementById('day-body');
+  body.innerHTML = '<div class="loading"><div class="spinner"></div>Chargement…</div>';
+  try {
+    events = await grist.getEvents(curDate);
+    events.sort((a, b) => (a.time || '').localeCompare(b.time || ''));
+    renderDay();
+  } catch (e) {
+    body.innerHTML = `<div class="loading">❌ ${e.message}</div>`;
+  }
+}
+
+const EVT = {
+  night_waking: { icon: '🌙', label: 'Réveil nocturne' },
+  wake_up:      { icon: '⏰', label: 'Lever' },
+  nap:          { icon: '😴', label: 'Sieste' },
+  bottle:       { icon: '🍼', label: 'Biberon' },
+  veggies:      { icon: '🥣', label: 'Légumes' },
+  bath:         { icon: '🛁', label: 'Bain' },
+  bedtime:      { icon: '🌜', label: 'Coucher' },
+  note:         { icon: '📝', label: 'Note' },
+};
+
+function evtDetail(e) {
+  switch (e.type) {
+    case 'night_waking': return e.quantity_ml ? `${e.quantity_ml} ml` : '';
+    case 'wake_up':      return '';
+    case 'nap': {
+      const dur = e.end_time ? calcDuration(e.time, e.end_time) : null;
+      let s = e.nap_label ? `${e.nap_label}` : '';
+      if (e.end_time) s += (s ? ' · ' : '') + `${e.time} → ${e.end_time}`;
+      if (dur)        s += ` <span class="dur-badge">${dur}</span>`;
+      else if (!e.end_time) s += (s ? ' · ' : '') + '<em>En cours…</em>';
+      return s;
+    }
+    case 'bottle': {
+      let s = e.quantity_ml ? `${e.quantity_ml} ml` : '';
+      if (e.meal_type) s += (s ? ' · ' : '') + e.meal_type;
+      return s;
+    }
+    case 'veggies': {
+      if (!e.ingredient) return '';
+      return e.is_new
+        ? `${e.ingredient} — ${e.quantity_spoons || '?'} c. (nouveau)`
+        : `${e.ingredient} — ${e.quantity_grams || '?'}g`;
+    }
+    case 'bath':    return '';
+    case 'bedtime': return e.notes || '';
+    case 'note':    return e.notes || '';
+    default:        return '';
+  }
+}
+
+function renderDay() {
+  const body = document.getElementById('day-body');
+  if (!events.length) {
+    body.innerHTML = `<div class="day-empty">
+      <span class="big">🌟</span>
+      <strong>Aucun événement pour cette journée</strong>
+      <p style="margin-top:8px">Appuyez sur <strong>+</strong> pour ajouter<br>un biberon, une sieste…</p>
+    </div>`;
+    return;
+  }
+  body.innerHTML = `<div class="event-list">${events.map(ev => {
+    const meta   = EVT[ev.type] || { icon: '❓', label: ev.type };
+    const detail = evtDetail(ev);
+    return `<div class="event-card" id="ec-${ev.id}">
+      <div class="ev-icon">${meta.icon}</div>
+      <div class="ev-body">
+        <div class="ev-title">${meta.label}</div>
+        ${detail ? `<div class="ev-detail">${detail}</div>` : ''}
+      </div>
+      <div class="ev-time">${ev.time || ''}</div>
+      <div class="ev-actions">
+        <button class="ev-btn" onclick="openModal(${ev.id})" aria-label="Modifier">✏️</button>
+        <button class="ev-btn" onclick="deleteEvt(${ev.id})" aria-label="Supprimer">🗑</button>
+      </div>
+    </div>`;
+  }).join('')}</div>`;
+}
+
+// ══════════════════════════════════════════════════════════════
+//  EVENT MODAL
+// ══════════════════════════════════════════════════════════════
+const REFS = {
+  night_waking: '🌙 Réveil 1 → 180 ml + 5 c. &nbsp;|&nbsp; Réveil 2 → 150 ml + 4 c. &nbsp;|&nbsp; Réveil 3 → 90 ml + 3 c.',
+  bottle:       '🍼 Petit-déj : 210 ml &nbsp;·&nbsp; Déjeuner : 210 ml &nbsp;·&nbsp; Goûter : 180 ml &nbsp;·&nbsp; Dîner : 240 ml',
+  veggies:      '🥣 Nouveau ingrédient : 2–5 cuillères &nbsp;·&nbsp; Ingrédient connu : 30 g de purée',
+  nap:          '⏰ Matin : dès 8h30, max 10h45 &nbsp;·&nbsp; Après-midi : 12h–12h30, max 15h30 &nbsp;·&nbsp; Micro : ~17h, ⛔ jamais après 18h',
+  bedtime:      '🛁 Bain : 18h &nbsp;·&nbsp; Coucher : 19h15–19h30',
+};
+
+function openModal(id = null) {
+  editId   = id;
+  selType  = null;
+  document.getElementById('modal-title').textContent = id ? 'Modifier l\'événement' : 'Ajouter un événement';
+  document.querySelectorAll('.type-btn').forEach(b => b.classList.remove('sel'));
+  document.getElementById('evt-fields').innerHTML = '';
+  if (id) {
+    const ev = events.find(e => e.id === id);
+    if (ev) pickType(ev.type, ev);
+  }
+  document.getElementById('evt-overlay').classList.add('open');
+}
+
+function closeModal() {
+  document.getElementById('evt-overlay').classList.remove('open');
+  editId = null; selType = null;
+}
+
+function overlayClick(e) {
+  if (e.target === e.currentTarget) closeModal();
+}
+
+function pickType(type, data = null) {
+  selType = type;
+  document.querySelectorAll('.type-btn').forEach(b => b.classList.toggle('sel', b.dataset.t === type));
+  renderFields(type, data);
+}
+
+function renderFields(type, d = null) {
+  const ref  = REFS[type];
+  const time = d?.time || nowHHMM();
+  let html   = '';
+
+  if (ref) html += `<div class="ref-box">${ref}</div>`;
+
+  html += `<div class="form-group">
+    <label>Heure</label>
+    <input type="time" id="f-time" value="${time}">
+  </div>`;
+
+  switch (type) {
+    case 'night_waking':
+      html += field('Quantité bue (ml)', `<input type="number" id="f-ml" value="${d?.quantity_ml||''}" placeholder="ex : 180" inputmode="numeric" min="0" max="500">`);
+      break;
+
+    case 'nap':
+      html += field('Type de sieste',
+        `<select id="f-nap-label">
+          <option value="">— Choisir —</option>
+          ${['matin','après-midi','micro'].map(l =>
+            `<option value="${l}" ${d?.nap_label===l?'selected':''}>${l.charAt(0).toUpperCase()+l.slice(1)}</option>`
+          ).join('')}
+        </select>`);
+      html += field('Heure de réveil (optionnel)',
+        `<input type="time" id="f-end-time" value="${d?.end_time||''}">
+        <div class="hint">⏱ La durée sera calculée automatiquement</div>`);
+      break;
+
+    case 'bottle':
+      html += field('Repas',
+        `<select id="f-meal-type">
+          <option value="">— Choisir —</option>
+          ${['petit-déjeuner','déjeuner','goûter','dîner'].map(m =>
+            `<option value="${m}" ${d?.meal_type===m?'selected':''}>${m.charAt(0).toUpperCase()+m.slice(1)}</option>`
+          ).join('')}
+        </select>`);
+      html += field('Quantité bue (ml)',
+        `<input type="number" id="f-ml" value="${d?.quantity_ml||''}" placeholder="ex : 210" inputmode="numeric" min="0" max="500">`);
+      break;
+
+    case 'veggies': {
+      const isNew = d ? d.is_new : true;
+      html += field('Ingrédient',
+        `<input type="text" id="f-ingredient" value="${d?.ingredient||''}" placeholder="ex : carottes, courgette…">`);
+      html += field('Type',
+        `<select id="f-is-new" onchange="toggleVeg()">
+          <option value="new"   ${isNew?'selected':''}>Nouveau (cuillères)</option>
+          <option value="known" ${!isNew?'selected':''}>Connu (grammes)</option>
+        </select>`);
+      html += `<div id="veg-new" class="form-group" ${!isNew?'style="display:none"':''}>
+        <label>Nombre de cuillères <span style="color:var(--muted)">(2–5 recommandé)</span></label>
+        <input type="number" id="f-spoons" value="${d?.quantity_spoons||''}" placeholder="2–5" inputmode="numeric" min="1" max="20">
+      </div>`;
+      html += `<div id="veg-known" class="form-group" ${isNew?'style="display:none"':''}>
+        <label>Quantité (grammes) <span style="color:var(--muted)">(~30g)</span></label>
+        <input type="number" id="f-grams" value="${d?.quantity_grams||''}" placeholder="30" inputmode="numeric" min="0" max="300">
+      </div>`;
+      break;
+    }
+
+    case 'bedtime':
+      html += `<div class="warn-box">⚠️ Rituel : volets → câlin → lit → partir<br>Coucher cible : 19h15–19h30</div>`;
+      html += field('Notes (optionnel)',
+        `<input type="text" id="f-notes" value="${d?.notes||''}" placeholder="ex : endormi dans les bras après le rot…">`);
+      break;
+
+    case 'note':
+      html += field('Note libre',
+        `<textarea id="f-notes" rows="3" style="resize:vertical">${d?.notes||''}</textarea>`);
+      break;
+  }
+
+  document.getElementById('evt-fields').innerHTML = html;
+}
+
+function field(label, inputHtml) {
+  return `<div class="form-group"><label>${label}</label>${inputHtml}</div>`;
+}
+
+function toggleVeg() {
+  const isNew = document.getElementById('f-is-new').value === 'new';
+  document.getElementById('veg-new').style.display   = isNew ? '' : 'none';
+  document.getElementById('veg-known').style.display = isNew ? 'none' : '';
+}
+
+async function saveEvt() {
+  if (!selType) { toast('⚠️ Choisissez un type d\'événement'); return; }
+  const timeEl = document.getElementById('f-time');
+  if (!timeEl?.value) { toast('⚠️ L\'heure est requise'); return; }
+
+  const fields = { date: curDate, time: timeEl.value, type: selType };
+
+  const v = (id) => document.getElementById(id)?.value || null;
+  const n = (id) => { const x = parseFloat(document.getElementById(id)?.value); return isNaN(x) ? null : x; };
+
+  if (selType === 'night_waking') { fields.quantity_ml = n('f-ml'); }
+  if (selType === 'nap') {
+    const endEl = document.getElementById('f-end-time');
+    if (endEl?.value) fields.end_time = endEl.value;
+    fields.nap_label = v('f-nap-label');
+  }
+  if (selType === 'bottle') { fields.quantity_ml = n('f-ml'); fields.meal_type = v('f-meal-type'); }
+  if (selType === 'veggies') {
+    fields.ingredient       = v('f-ingredient');
+    fields.is_new           = document.getElementById('f-is-new')?.value === 'new';
+    fields.quantity_spoons  = n('f-spoons');
+    fields.quantity_grams   = n('f-grams');
+  }
+  if (selType === 'bedtime') { fields.notes = v('f-notes'); }
+  if (selType === 'note')    { fields.notes = v('f-notes'); }
+
+  // Strip nulls
+  Object.keys(fields).forEach(k => fields[k] === null && delete fields[k]);
+
+  const btn = document.getElementById('save-btn');
+  btn.textContent = '⏳'; btn.disabled = true;
+  try {
+    if (editId) {
+      await grist.updateEvent(editId, fields);
+      const i = events.findIndex(e => e.id === editId);
+      if (i >= 0) events[i] = { id: editId, ...fields };
+    } else {
+      const newId = await grist.addEvent(fields);
+      events.push({ id: newId, ...fields });
+    }
+    events.sort((a, b) => (a.time||'').localeCompare(b.time||''));
+    renderDay();
+    closeModal();
+    toast(editId ? '✅ Modifié !' : '✅ Ajouté !');
+  } catch (e) {
+    toast('❌ ' + e.message, 4000);
+  } finally {
+    btn.textContent = 'Enregistrer'; btn.disabled = false;
+  }
+}
+
+async function deleteEvt(id) {
+  if (!confirm('Supprimer cet événement ?')) return;
+  try {
+    await grist.deleteEvent(id);
+    events = events.filter(e => e.id !== id);
+    renderDay();
+    toast('🗑 Supprimé');
+  } catch (e) { toast('❌ ' + e.message, 3500); }
+}
+
+// ══════════════════════════════════════════════════════════════
+//  REPORT GENERATION
+// ══════════════════════════════════════════════════════════════
+function evtToLine(ev) {
+  const t = fmtTimeFR(ev.time);
+  switch (ev.type) {
+    case 'wake_up':
+      return `⏰ Lever : ${t}`;
+    case 'nap': {
+      const label = ev.nap_label ? ` ${ev.nap_label}` : '';
+      if (ev.end_time) {
+        const dur = calcDuration(ev.time, ev.end_time);
+        const range = `${t} – ${fmtTimeFR(ev.end_time)}`;
+        return `🛏 Sieste${label} : ${range}${dur ? ` (${dur})` : ''}`;
+      }
+      return `🛏 Sieste${label} : ${t}`;
+    }
+    case 'bottle': {
+      const isDinner = ev.meal_type === 'dîner';
+      return isDinner
+        ? `🍼 Dîner ${t} : ${ev.quantity_ml || '?'} ml`
+        : `🍼 ${t} : ${ev.quantity_ml || '?'} ml`;
+    }
+    case 'veggies': {
+      let s = `🥣 Déjeuner (${t})`;
+      if (ev.ingredient) {
+        s += ev.is_new
+          ? `\n• ${ev.quantity_spoons || '?'} c. ${ev.ingredient} (nouveau)`
+          : `\n• ${ev.quantity_grams || '?'}g ${ev.ingredient}`;
+      }
+      return s;
+    }
+    case 'night_waking': return `🍼 Réveil ${t} : ${ev.quantity_ml || '?'} ml`;
+    case 'bath':         return `🛁 Bain : ${t}`;
+    case 'bedtime':      return `🌙 Coucher : ${t}${ev.notes ? ` (${ev.notes})` : ''}`;
+    case 'note':         return ev.notes ? `📝 ${ev.notes}` : '';
+    default:             return '';
+  }
+}
+
+async function buildReport() {
+  const ta = document.getElementById('report-text');
+  ta.value = '⏳ Génération…';
+
+  try {
+    const dayEvts = [...events].sort((a, b) => (a.time||'').localeCompare(b.time||''));
+    const nextDate = addDays(curDate, 1);
+    const nextEvts = (await grist.getEvents(nextDate)).sort((a, b) => (a.time||'').localeCompare(b.time||''));
+
+    const dayLabel  = fmtDateFR(curDate);
+    const nextLabel = fmtDateFR(nextDate);
+
+    let txt = `Bonjour,\n\n*Journée d'hier - ${dayLabel}*\n\n`;
+
+    // Main day events (from 07:00)
+    dayEvts.filter(e => (e.time||'') >= '07:00').forEach(ev => {
+      const l = evtToLine(ev);
+      if (l) txt += l + '\n\n';
+    });
+
+    // Night (next day 00:00–06:59)
+    const nightEvts = nextEvts.filter(e => (e.time||'') < '07:00');
+    if (nightEvts.length) {
+      txt += `🌙 *Nuit*\n`;
+      nightEvts.forEach(ev => { const l = evtToLine(ev); if (l) txt += l + '\n'; });
+      txt += '\n';
+    }
+
+    // Morning (next day 07:00+)
+    const morningEvts = nextEvts.filter(e => (e.time||'') >= '07:00');
+    if (morningEvts.length) {
+      txt += `🌅 *Matin - ${nextLabel}*\n\n`;
+      morningEvts.forEach(ev => { const l = evtToLine(ev); if (l) txt += l + '\n\n'; });
+    }
+
+    ta.value = txt.trimEnd();
+  } catch (e) {
+    ta.value = `❌ Erreur : ${e.message}`;
+  }
+}
+
+async function copyReport() {
+  const txt = document.getElementById('report-text').value;
+  if (!txt || txt.startsWith('⏳')) { toast('⚠️ Générez d\'abord le rapport'); return; }
+  try {
+    await navigator.clipboard.writeText(txt);
+    toast('📋 Copié dans le presse-papiers !');
+  } catch {
+    document.getElementById('report-text').select();
+    document.execCommand('copy');
+    toast('📋 Copié !');
+  }
+}
+
+async function saveReport() {
+  const txt = document.getElementById('report-text').value;
+  if (!txt || txt.startsWith('⏳')) { toast('⚠️ Générez d\'abord le rapport'); return; }
+  try {
+    await grist.upsertReport(curDate, txt);
+    toast('💾 Rapport sauvegardé !');
+    loadArchive();
+  } catch (e) { toast('❌ ' + e.message, 3500); }
+}
+
+// ══════════════════════════════════════════════════════════════
+//  ARCHIVE
+// ══════════════════════════════════════════════════════════════
+async function loadArchive() {
+  const body = document.getElementById('archive-body');
+  body.innerHTML = '<div class="loading"><div class="spinner"></div>Chargement…</div>';
+  try {
+    archiveData = await grist.getReports();
+    renderArchive();
+  } catch (e) {
+    body.innerHTML = `<div class="loading">❌ ${e.message}</div>`;
+  }
+}
+
+function renderArchive() {
+  const body = document.getElementById('archive-body');
+  if (!archiveData.length) {
+    body.innerHTML = `<div class="day-empty"><span class="big">📂</span><strong>Aucun rapport sauvegardé</strong><p style="margin-top:8px">Générez un rapport depuis l'onglet Rapport<br>puis appuyez sur 💾 Sauvegarder.</p></div>`;
+    return;
+  }
+  body.innerHTML = archiveData.map((r, i) => `
+    <div class="archive-card" onclick="openRV(${i})">
+      <span class="arch-icon">📄</span>
+      <div>
+        <div class="arch-date">${fmtDateFR(r.date)}</div>
+        <div class="arch-meta">Sauvegardé le ${r.generated_at ? new Date(r.generated_at).toLocaleDateString('fr-FR', {day:'numeric',month:'long',hour:'2-digit',minute:'2-digit'}) : '–'}</div>
+      </div>
+      <span class="arch-arr">›</span>
+    </div>`).join('');
+}
+
+function openRV(i) {
+  const r = archiveData[i];
+  curRvId = r.id;
+  document.getElementById('rv-title').textContent = fmtDateFR(r.date);
+  document.getElementById('rv-text').textContent  = r.report_text || '';
+  document.getElementById('report-view').classList.add('open');
+}
+
+function closeRV() {
+  document.getElementById('report-view').classList.remove('open');
+  curRvId = null;
+}
+
+async function copyRV() {
+  const txt = document.getElementById('rv-text').textContent;
+  try { await navigator.clipboard.writeText(txt); toast('📋 Copié !'); }
+  catch { toast('❌ Impossible de copier'); }
+}
+
+async function deleteRV() {
+  if (!curRvId || !confirm('Supprimer ce rapport ?')) return;
+  try {
+    await grist.deleteReport(curRvId);
+    toast('🗑 Rapport supprimé');
+    closeRV();
+    loadArchive();
+  } catch (e) { toast('❌ ' + e.message, 3500); }
+}
+
+// ══════════════════════════════════════════════════════════════
+//  SETTINGS
+// ══════════════════════════════════════════════════════════════
+function openSettings() {
+  document.getElementById('new-pin').value  = '';
+  document.getElementById('set-name').value = cfg.babyName || '';
+  document.getElementById('set-dob').value  = cfg.babyDob  || '';
+  document.getElementById('settings-overlay').classList.add('open');
+}
+function closeSettings() { document.getElementById('settings-overlay').classList.remove('open'); }
+function settingsOverlayClick(e) { if (e.target === e.currentTarget) closeSettings(); }
+
+function saveSettings() {
+  const p    = document.getElementById('new-pin').value.trim();
+  const name = (document.getElementById('set-name').value.trim()) || cfg.babyName || 'Bébé';
+  const dob  = document.getElementById('set-dob').value.trim();
+  if (p && !/^\d{4}$/.test(p)) { toast('⚠️ PIN : 4 chiffres requis'); return; }
+  if (p) cfg.pin = p;
+  cfg.babyName = name;
+  cfg.babyDob  = dob;
+  localStorage.setItem(CFG_KEY, JSON.stringify(cfg));
+  const pinTitle = document.getElementById('pin-title');
+  if (pinTitle) pinTitle.textContent = `Suivi ${name}`;
+  toast('✅ Paramètres sauvegardés !');
+  closeSettings();
+}
+
+function resetApp() {
+  if (!confirm('Réinitialiser toute la configuration ?\n(Les données Grist ne seront pas supprimées)')) return;
+  localStorage.removeItem(CFG_KEY);
+  location.reload();
+}
+
+// ══════════════════════════════════════════════════════════════
+//  DASHBOARD
+// ══════════════════════════════════════════════════════════════
+let dashCharts = {};
+
+function destroyChart(id) {
+  if (dashCharts[id]) { dashCharts[id].destroy(); delete dashCharts[id]; }
+}
+
+// Build last-N-days array ending at curDate
+function lastNDays(n) {
+  return Array.from({ length: n }, (_, i) => addDays(curDate, -(n - 1) + i));
+}
+
+// Short day label: "lun. 18"
+function shortDay(dateStr) {
+  const d = new Date(dateStr + 'T12:00:00');
+  return `${FR_DAYS[d.getDay()].slice(0,3)}. ${d.getDate()}`;
+}
+
+// Convert "HH:MM" → decimal hours (19:30 → 19.5)
+function timeToDecimal(t) {
+  if (!t) return null;
+  const [h, m] = t.split(':').map(Number);
+  return h + m / 60;
+}
+
+// Format decimal hours back to label
+function decimalToTime(val) {
+  const h = Math.floor(val);
+  const m = Math.round((val - h) * 60);
+  return `${h}h${String(m).padStart(2,'0')}`;
+}
+
+// Total nap minutes from event list
+function totalNapMin(evts) {
+  return evts
+    .filter(e => e.type === 'nap' && e.time && e.end_time)
+    .reduce((sum, e) => {
+      let diff = hhmm2min(e.end_time) - hhmm2min(e.time);
+      if (diff < 0) diff += 1440;
+      return sum + diff;
+    }, 0);
+}
+
+// Format minutes as "Xh YY" or "YY min"
+function fmtMinutes(min) {
+  if (!min) return '—';
+  const h = Math.floor(min / 60), m = min % 60;
+  if (h === 0) return `${m} min`;
+  if (m === 0) return `${h}h`;
+  return `${h}h${String(m).padStart(2,'0')}`;
+}
+
+async function loadDash() {
+  const body = document.getElementById('dash-body');
+  body.innerHTML = '<div class="dash-loading"><div class="spinner"></div>Chargement du bilan…</div>';
+
+  try {
+    const dates   = lastNDays(7);
+    const allEvts = await Promise.all(dates.map(d => grist.getEvents(d)));
+    const byDate  = Object.fromEntries(dates.map((d, i) => [d, allEvts[i]]));
+
+    // ── Today's stats ──────────────────────────────────────────
+    const todayEvts   = byDate[curDate] || [];
+    const todayMilk   = todayEvts.filter(e => e.type === 'bottle' || e.type === 'night_waking')
+                                 .reduce((s, e) => s + (e.quantity_ml || 0), 0);
+    const todayNapMin = totalNapMin(todayEvts);
+    const todayWakes  = todayEvts.filter(e => e.type === 'night_waking').length;
+    const milkPct     = Math.min(100, Math.round((todayMilk / 1020) * 100));
+    const milkClass   = milkPct >= 90 ? 'good' : milkPct >= 60 ? '' : 'warn';
+
+    // ── 7-day series ───────────────────────────────────────────
+    const labels      = dates.map(shortDay);
+    const milkSeries  = dates.map(d => {
+      const evts = byDate[d] || [];
+      return evts.filter(e => e.type === 'bottle' || e.type === 'night_waking')
+                 .reduce((s, e) => s + (e.quantity_ml || 0), 0);
+    });
+    const napSeries   = dates.map(d => +(totalNapMin(byDate[d] || []) / 60).toFixed(2));
+    const wakeSeries  = dates.map(d => (byDate[d] || []).filter(e => e.type === 'night_waking').length);
+    const bedSeries   = dates.map(d => {
+      const bt = (byDate[d] || []).find(e => e.type === 'bedtime');
+      return bt ? timeToDecimal(bt.time) : null;
+    });
+
+    // Avg milk over days that have data
+    const milkDays   = milkSeries.filter(v => v > 0);
+    const avgMilk    = milkDays.length ? Math.round(milkDays.reduce((a,b) => a+b,0) / milkDays.length) : 0;
+    const napDays    = napSeries.filter(v => v > 0);
+    const avgNap     = napDays.length ? (napDays.reduce((a,b) => a+b,0) / napDays.length).toFixed(1) : 0;
+
+    // ── Vegetables ─────────────────────────────────────────────
+    const vegNew   = new Set();
+    const vegKnown = new Set();
+    dates.forEach(d => {
+      (byDate[d] || []).filter(e => e.type === 'veggies' && e.ingredient).forEach(e => {
+        (e.is_new ? vegNew : vegKnown).add(e.ingredient.trim().toLowerCase());
+      });
+    });
+    // known overrides new if appeared as both
+    vegNew.forEach(v => { if (vegKnown.has(v)) vegNew.delete(v); });
+
+    // ── Render HTML ────────────────────────────────────────────
+    const babyName = cfg.babyName || 'Bébé';
+    const age      = cfg.babyDob ? calcAge(cfg.babyDob) : null;
+
+    body.innerHTML = `
+    <div class="dash-wrap">
+
+      <!-- Baby header -->
+      <div style="background:linear-gradient(135deg,#667eea,#764ba2);border-radius:14px;padding:16px 18px;color:#fff;display:flex;align-items:center;gap:14px;box-shadow:0 2px 8px rgba(102,126,234,.3)">
+        <span style="font-size:40px">🍼</span>
+        <div>
+          <div style="font-size:20px;font-weight:800">${babyName}</div>
+          ${age ? `<div style="font-size:13px;opacity:.85;margin-top:2px">${age}</div>` : ''}
+        </div>
+      </div>
+
+      <!-- Summary cards -->
+      <div class="dash-cards">
+        <div class="dash-card">
+          <span class="dc-icon">🍼</span>
+          <div class="dc-val">${todayMilk || '—'}<span style="font-size:11px;font-weight:500;color:var(--muted)"> ml</span></div>
+          <div class="dc-sub">/ 1 020 ml</div>
+          <div class="progress-wrap">
+            <div class="progress-bar"><div class="progress-fill ${milkClass}" style="width:${milkPct}%"></div></div>
+          </div>
+        </div>
+        <div class="dash-card">
+          <span class="dc-icon">😴</span>
+          <div class="dc-val">${todayNapMin ? fmtMinutes(todayNapMin) : '—'}</div>
+          <div class="dc-sub">Siestes</div>
+        </div>
+        <div class="dash-card">
+          <span class="dc-icon">🌙</span>
+          <div class="dc-val">${todayWakes}</div>
+          <div class="dc-sub">Réveil${todayWakes > 1 ? 's' : ''} nuit</div>
+        </div>
+      </div>
+
+      <!-- Milk chart -->
+      <div class="chart-card">
+        <h3>🍼 Apport lait — 7 jours</h3>
+        <div class="stat-row">
+          <div class="stat-item"><div class="sv">${avgMilk} ml</div><div class="sl">Moyenne / jour</div></div>
+          <div class="stat-item"><div class="sv">${Math.max(...milkSeries)} ml</div><div class="sl">Maximum</div></div>
+          <div class="stat-item"><div class="sv">${milkDays.filter(v => v >= 1020).length}/${dates.length}</div><div class="sl">Objectif atteint</div></div>
+        </div>
+        <canvas id="chart-milk"></canvas>
+      </div>
+
+      <!-- Nap chart -->
+      <div class="chart-card">
+        <h3>😴 Durée siestes — 7 jours</h3>
+        <div class="stat-row">
+          <div class="stat-item"><div class="sv">${avgNap}h</div><div class="sl">Moyenne / jour</div></div>
+          <div class="stat-item"><div class="sv">${Math.max(...napSeries).toFixed(1)}h</div><div class="sl">Maximum</div></div>
+        </div>
+        <canvas id="chart-naps"></canvas>
+      </div>
+
+      <!-- Bedtime chart -->
+      <div class="chart-card">
+        <h3>🌙 Heure de coucher — 7 jours</h3>
+        <p style="font-size:12px;color:var(--muted);margin-bottom:12px">Zone cible : 19h15–19h30</p>
+        <canvas id="chart-bed"></canvas>
+      </div>
+
+      <!-- Night wakings chart -->
+      <div class="chart-card">
+        <h3>🌙 Réveils nocturnes — 7 jours</h3>
+        <div class="stat-row">
+          <div class="stat-item"><div class="sv">${(wakeSeries.reduce((a,b)=>a+b,0)/7).toFixed(1)}</div><div class="sl">Moyenne / nuit</div></div>
+          <div class="stat-item"><div class="sv">${wakeSeries.filter(v=>v===0).length}</div><div class="sl">Nuits sans réveil</div></div>
+        </div>
+        <canvas id="chart-wake"></canvas>
+      </div>
+
+      <!-- Vegetables -->
+      <div class="veg-section">
+        <h3>🥣 Légumes explorés — 7 jours</h3>
+        ${vegNew.size === 0 && vegKnown.size === 0
+          ? '<p class="veg-empty">Aucun légume enregistré sur cette période.</p>'
+          : `
+          ${vegNew.size > 0 ? `
+          <div class="veg-group">
+            <div class="veg-group-label">🆕 Nouveaux ingrédients</div>
+            <div class="veg-tags">${[...vegNew].map(v => `<span class="veg-tag new">✨ ${v}</span>`).join('')}</div>
+          </div>` : ''}
+          ${vegKnown.size > 0 ? `
+          <div class="veg-group">
+            <div class="veg-group-label">✅ Ingrédients connus</div>
+            <div class="veg-tags">${[...vegKnown].map(v => `<span class="veg-tag known">${v}</span>`).join('')}</div>
+          </div>` : ''}
+        `}
+      </div>
+
+    </div>`;
+
+    // ── Inline chart plugins ───────────────────────────────────
+    // Reference line at 1020ml for milk chart
+    const milkRefPlugin = {
+      id: 'milkRef',
+      afterDraw(ch) {
+        const { ctx, chartArea: { left, right }, scales: { y } } = ch;
+        const yPos = y.getPixelForValue(1020);
+        ctx.save();
+        ctx.setLineDash([5, 4]); ctx.strokeStyle = '#fc8181'; ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.moveTo(left, yPos); ctx.lineTo(right, yPos); ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.fillStyle = '#fc8181'; ctx.font = 'bold 10px sans-serif';
+        ctx.fillText('1 020 ml', left + 4, yPos - 4);
+        ctx.restore();
+      }
+    };
+
+    // Target zone 19h15–19h30 for bedtime chart
+    const bedZonePlugin = {
+      id: 'bedZone',
+      afterDraw(ch) {
+        const { ctx, chartArea: { left, right }, scales: { y } } = ch;
+        const y1 = y.getPixelForValue(19.5);
+        const y2 = y.getPixelForValue(19.25);
+        ctx.save();
+        ctx.fillStyle = 'rgba(72,187,120,.13)';
+        ctx.fillRect(left, y1, right - left, y2 - y1);
+        ctx.strokeStyle = 'rgba(72,187,120,.5)'; ctx.lineWidth = 1; ctx.setLineDash([4,3]);
+        ctx.beginPath(); ctx.moveTo(left, y1); ctx.lineTo(right, y1); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(left, y2); ctx.lineTo(right, y2); ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.fillStyle = 'rgba(72,187,120,.9)'; ctx.font = 'bold 10px sans-serif';
+        ctx.fillText('cible', right - 34, y1 + 12);
+        ctx.restore();
+      }
+    };
+
+    const baseScales = {
+      x: { grid: { display: false }, ticks: { font: { size: 11 } } },
+      y: { grid: { color: '#f0f2f8' }, ticks: { font: { size: 11 } } }
+    };
+
+    // ── Milk chart ─────────────────────────────────────────────
+    destroyChart('milk');
+    dashCharts.milk = new Chart(document.getElementById('chart-milk'), {
+      type: 'bar',
+      plugins: [milkRefPlugin],
+      data: {
+        labels,
+        datasets: [{
+          data: milkSeries,
+          backgroundColor: milkSeries.map(v =>
+            v >= 1020 ? 'rgba(72,187,120,.75)' : v === 0 ? 'rgba(226,232,240,.6)' : 'rgba(102,126,234,.75)'
+          ),
+          borderRadius: 6, borderSkipped: false,
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: true,
+        plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => `${ctx.raw} ml` } } },
+        scales: { ...baseScales, y: { ...baseScales.y, min: 0, ticks: { font:{size:11}, callback: v => v + ' ml' } } }
+      }
+    });
+
+    // ── Nap chart ──────────────────────────────────────────────
+    destroyChart('naps');
+    dashCharts.naps = new Chart(document.getElementById('chart-naps'), {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [{
+          data: napSeries,
+          backgroundColor: 'rgba(167,139,250,.75)',
+          borderRadius: 6, borderSkipped: false,
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: true,
+        plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => `${ctx.raw}h` } } },
+        scales: { ...baseScales, y: { ...baseScales.y, min: 0, ticks: { font:{size:11}, callback: v => v + 'h' } } }
+      }
+    });
+
+    // ── Bedtime chart ──────────────────────────────────────────
+    const validBed = bedSeries.filter(v => v !== null);
+    const bedYMin  = validBed.length ? Math.max(17, Math.min(...validBed) - 0.5) : 18;
+    const bedYMax  = validBed.length ? Math.min(23, Math.max(...validBed) + 0.5) : 21;
+    destroyChart('bed');
+    dashCharts.bed = new Chart(document.getElementById('chart-bed'), {
+      type: 'line',
+      plugins: [bedZonePlugin],
+      data: {
+        labels,
+        datasets: [{
+          data: bedSeries,
+          borderColor: '#667eea', borderWidth: 2.5,
+          backgroundColor: 'rgba(102,126,234,.08)',
+          pointBackgroundColor: bedSeries.map(v =>
+            v === null ? 'transparent' : (v >= 19.25 && v <= 19.5) ? '#48bb78' : '#fc8181'
+          ),
+          pointRadius: 5, tension: 0.3, spanGaps: true, fill: false,
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: true,
+        plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ctx.raw ? decimalToTime(ctx.raw) : '—' } } },
+        scales: {
+          ...baseScales,
+          y: { ...baseScales.y, min: bedYMin, max: bedYMax, ticks: { font:{size:11}, callback: v => decimalToTime(v), stepSize: 0.25 } }
+        }
+      }
+    });
+
+    // ── Night wakings chart ────────────────────────────────────
+    destroyChart('wake');
+    dashCharts.wake = new Chart(document.getElementById('chart-wake'), {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [{
+          data: wakeSeries,
+          backgroundColor: wakeSeries.map(v =>
+            v === 0 ? 'rgba(72,187,120,.65)' : v >= 3 ? 'rgba(252,129,129,.75)' : 'rgba(246,173,85,.75)'
+          ),
+          borderRadius: 6, borderSkipped: false,
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: true,
+        plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => `${ctx.raw} réveil${ctx.raw > 1 ? 's' : ''}` } } },
+        scales: { ...baseScales, y: { ...baseScales.y, min: 0, ticks: { font:{size:11}, stepSize: 1, precision: 0 } } }
+      }
+    });
+
+  } catch (e) {
+    document.getElementById('dash-body').innerHTML =
+      `<div class="dash-loading">❌ Erreur : ${e.message}</div>`;
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
+//  SERVICE WORKER
+// ══════════════════════════════════════════════════════════════
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./sw.js').catch(() => {});
+}
+
+// ══════════════════════════════════════════════════════════════
+//  BOOT
+// ══════════════════════════════════════════════════════════════
+window.addEventListener('load', () => {
+  showScreen('pin-screen');
+  // Keyboard PIN support
+  document.addEventListener('keydown', e => {
+    if (document.getElementById('pin-screen').classList.contains('active')) {
+      if (e.key >= '0' && e.key <= '9') pinKey(parseInt(e.key));
+      if (e.key === 'Backspace') pinDel();
+    }
+  });
+});
+</script>
+</body>
+</html>
