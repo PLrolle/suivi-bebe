@@ -91,7 +91,16 @@ https://docs.getgrist.com/[ID-ICI]/suivi-bebe/...
 
 Menu profil (en bas à gauche) → **Gestion des API** → **Nouvelle clé** → copier la clé.
 
-### Étape 4 — Configurer l'app
+### Étape 4 — Proxy Cloudflare Worker (requis sur iPhone Safari)
+
+Safari iOS bloque les requêtes cross-origin avec header `Authorization`. Un proxy Cloudflare Worker est nécessaire pour contourner cette restriction.
+
+1. Créer un compte gratuit sur [dash.cloudflare.com](https://dash.cloudflare.com)
+2. **Workers & Pages** → **Create** → **Hello World** → **Deploy**
+3. **Edit code** → tout sélectionner → remplacer par le contenu de [`worker.js`](worker.js) → **Deploy**
+4. Copier l'URL générée (ex : `https://suivi-bebe.moncompte.workers.dev`)
+
+### Étape 5 — Configurer l'app
 
 Au premier lancement, appuyer sur **"Première utilisation / Reconfigurer"** et renseigner :
 
@@ -99,13 +108,16 @@ Au premier lancement, appuyer sur **"Première utilisation / Reconfigurer"** et 
 |-------|-------------|
 | Prénom du bébé | Affiché dans l'app et le dashboard |
 | Date de naissance | Pour le calcul de l'âge |
-| Code PIN | 4 chiffres — partagé entre les deux parents |
+| Code PIN | 4 chiffres — chaque parent choisit le sien |
 | Clé API Grist | Obtenue à l'étape 3 |
-| ID du document | Obtenu à l'étape 2 |
+| ID du document | Obtenu à l'étape 2 (prendre l'ID long depuis les paramètres du document, pas l'URL) |
+| URL du proxy | URL Cloudflare Worker obtenue à l'étape 4 |
 
 → L'app crée automatiquement les tables `Events` et `Reports` dans Grist. ✅
 
-> ⚠️ **Chaque parent configure l'app sur son téléphone** avec les mêmes identifiants Grist et le même PIN.
+> ⚠️ **Chaque parent configure l'app sur son téléphone** avec les mêmes identifiants Grist et la même URL proxy. Le PIN peut être différent pour chaque parent.
+
+> 💡 **Installer comme app native** : Safari → **Partager** → **Sur l'écran d'accueil**
 
 ---
 
@@ -114,6 +126,7 @@ Au premier lancement, appuyer sur **"Première utilisation / Reconfigurer"** et 
 ```
 suivi-bebe/
 ├── index.html        ← App complète (HTML + CSS + JS)
+├── worker.js         ← Proxy Cloudflare Worker (CORS Safari iOS)
 ├── manifest.json     ← Manifest PWA
 ├── sw.js             ← Service worker (cache offline)
 ├── icon-192.svg      ← Icône PWA
@@ -178,20 +191,6 @@ Bonjour,
 ⏰ Lever : 7h18
 🍼 7h50 : 190 ml
 ```
-
----
-
-## 🛠️ Utilisation en local (iPhone)
-
-```bash
-# Lancer un serveur local
-python3 -m http.server 8080
-
-# Ou avec Node
-npx serve .
-```
-
-Puis ouvrir `http://[IP-locale]:8080` dans Safari.
 
 ---
 
