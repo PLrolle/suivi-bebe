@@ -574,8 +574,9 @@
       <div class="hint">Permet d'afficher l'âge dans le bilan</div>
     </div>
     <div class="form-group">
-      <label>Code PIN (4 chiffres)</label>
-      <input type="tel" id="s-pin" placeholder="ex : 2810" maxlength="4" inputmode="numeric" pattern="\d{4}">
+      <label>Code PIN (optionnel)</label>
+      <input type="tel" id="s-pin" placeholder="Laisser vide pour désactiver" maxlength="4" inputmode="numeric" pattern="\d{4}">
+      <div class="hint">Si renseigné, l'app demandera ce code à l'ouverture</div>
     </div>
     <div class="form-group">
       <label>Clé API Grist</label>
@@ -755,8 +756,9 @@
       <input type="date" id="set-dob">
     </div>
     <div class="form-group">
-      <label>Nouveau code PIN</label>
-      <input type="tel" id="new-pin" placeholder="4 chiffres" maxlength="4" inputmode="numeric">
+      <label>Code PIN (optionnel)</label>
+      <input type="tel" id="new-pin" placeholder="Laisser vide pour désactiver" maxlength="4" inputmode="numeric">
+      <div class="hint">Si renseigné, l'app demandera ce code à l'ouverture</div>
     </div>
     <div class="flex-btns">
       <button class="btn-secondary" onclick="closeSettings()">Fermer</button>
@@ -993,7 +995,7 @@ function renderPinDots() {
 
 function checkPin() {
   if (!cfg.ready) { goSetup(); return; }
-  if (pinBuf === cfg.pin) {
+  if (!cfg.pin || pinBuf === cfg.pin) {
     bootApp();
   } else {
     const el = document.getElementById('pin-err');
@@ -1022,8 +1024,8 @@ async function setupSave() {
   const btn   = document.getElementById('setup-btn');
 
   errEl.textContent = '';
-  if (!/^\d{4}$/.test(pin)) { errEl.textContent = '⚠️ Le PIN doit être exactement 4 chiffres.'; return; }
-  if (!key)                  { errEl.textContent = '⚠️ La clé API est requise.'; return; }
+  if (pin && !/^\d{4}$/.test(pin)) { errEl.textContent = '⚠️ Le PIN doit être exactement 4 chiffres (ou laisser vide).'; return; }
+  if (!key)                        { errEl.textContent = '⚠️ La clé API est requise.'; return; }
   if (!doc)                  { errEl.textContent = '⚠️ L\'ID du document est requis.'; return; }
 
   btn.textContent = '⏳ Connexion à Grist…'; btn.disabled = true;
@@ -2190,7 +2192,12 @@ if ('serviceWorker' in navigator) {
 //  BOOT
 // ══════════════════════════════════════════════════════════════
 window.addEventListener('load', () => {
-  showScreen('pin-screen');
+  // Si configuré sans PIN → démarrer directement
+  if (cfg.ready && !cfg.pin) {
+    bootApp();
+  } else {
+    showScreen('pin-screen');
+  }
   // Keyboard PIN support
   document.addEventListener('keydown', e => {
     if (document.getElementById('pin-screen').classList.contains('active')) {
