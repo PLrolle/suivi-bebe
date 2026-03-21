@@ -7,6 +7,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Suivi Bébé">
   <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" id="apple-touch-icon" href="icon-192.svg">
   <title>🍼 Suivi Bébé</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <style>
@@ -451,6 +452,51 @@
     }
     .prog-total span { font-size: 22px; display: block; margin-bottom: 4px; }
 
+    /* ── BABY AVATAR ── */
+    .baby-avatar {
+      width: 56px; height: 56px; border-radius: 50%;
+      object-fit: cover; border: 3px solid rgba(255,255,255,.5);
+      flex-shrink: 0;
+    }
+    .baby-avatar-placeholder { font-size: 40px; flex-shrink: 0; line-height: 1; }
+    .baby-avatar-sm {
+      width: 42px; height: 42px; border-radius: 50%;
+      object-fit: cover; border: 2px solid rgba(255,255,255,.5);
+      flex-shrink: 0;
+    }
+
+    /* ── PHOTO UPLOAD ── */
+    .photo-upload-area {
+      display: flex; align-items: center; gap: 14px;
+      background: var(--bg); border-radius: 12px; padding: 12px;
+      border: 1.5px dashed var(--border);
+    }
+    .photo-preview {
+      width: 64px; height: 64px; border-radius: 50%;
+      object-fit: cover; border: 2px solid var(--border);
+      display: none; flex-shrink: 0;
+    }
+    .photo-preview.visible { display: block; }
+    .photo-placeholder-icon {
+      width: 64px; height: 64px; border-radius: 50%;
+      background: var(--border); display: flex; align-items: center;
+      justify-content: center; font-size: 28px; flex-shrink: 0;
+    }
+    .photo-upload-btns { display: flex; flex-direction: column; gap: 8px; flex: 1; }
+    .btn-upload {
+      padding: 8px 14px; border-radius: 10px; border: 1.5px solid var(--primary);
+      background: none; color: var(--primary); font-size: 13px; font-weight: 600;
+      cursor: pointer; text-align: center;
+    }
+    .btn-upload:active { background: rgba(102,126,234,.08); }
+    .btn-del-photo {
+      padding: 8px 14px; border-radius: 10px; border: 1.5px solid var(--danger);
+      background: none; color: var(--danger); font-size: 13px; font-weight: 600;
+      cursor: pointer; display: none;
+    }
+    .btn-del-photo.visible { display: block; }
+    #photo-input { display: none; }
+
     /* ── DASHBOARD ── */
     .dash-wrap { padding: 14px; display: flex; flex-direction: column; gap: 14px; }
 
@@ -748,6 +794,18 @@
     <div class="modal-handle"></div>
     <div class="modal-title">⚙️ Paramètres</div>
     <div class="form-group">
+      <label>Photo du bébé</label>
+      <div class="photo-upload-area">
+        <div class="photo-placeholder-icon" id="photo-placeholder">👶</div>
+        <img class="photo-preview" id="photo-preview" src="" alt="Photo">
+        <div class="photo-upload-btns">
+          <label class="btn-upload" for="photo-input">📷 Choisir une photo</label>
+          <input type="file" id="photo-input" accept="image/*" onchange="handlePhotoUpload(event)">
+          <button class="btn-del-photo" id="btn-del-photo" onclick="deletePhoto()">🗑 Supprimer</button>
+        </div>
+      </div>
+    </div>
+    <div class="form-group">
       <label>Prénom du bébé</label>
       <input type="text" id="set-name" placeholder="ex : Emma">
     </div>
@@ -778,8 +836,10 @@
 // ══════════════════════════════════════════════════════════════
 //  CONSTANTS & STATE
 // ══════════════════════════════════════════════════════════════
-const CFG_KEY = 'marcus_v3';
-let cfg = (() => { try { return JSON.parse(localStorage.getItem(CFG_KEY) || '{}'); } catch { return {}; } })();
+const CFG_KEY   = 'marcus_v3';
+const PHOTO_KEY = 'marcus_photo';
+let cfg       = (() => { try { return JSON.parse(localStorage.getItem(CFG_KEY) || '{}'); } catch { return {}; } })();
+let babyPhoto = localStorage.getItem(PHOTO_KEY) || null; // base64 data URL
 
 let grist = null;
 let curDate = todayStr();
@@ -1065,6 +1125,7 @@ function bootApp() {
   showScreen('app-screen');
   updateHeader();
   refreshDay();
+  refreshPhotoUI();
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -1687,10 +1748,91 @@ async function copyRV() {
 // ══════════════════════════════════════════════════════════════
 //  SETTINGS
 // ══════════════════════════════════════════════════════════════
+// ══════════════════════════════════════════════════════════════
+//  PHOTO
+// ══════════════════════════════════════════════════════════════
+function resizePhoto(file) {
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const img = new Image();
+      img.onload = () => {
+        const SIZE = 256;
+        const canvas = document.createElement('canvas');
+        canvas.width = SIZE; canvas.height = SIZE;
+        const ctx = canvas.getContext('2d');
+        // Crop to square from center
+        const min = Math.min(img.width, img.height);
+        const sx  = (img.width  - min) / 2;
+        const sy  = (img.height - min) / 2;
+        ctx.drawImage(img, sx, sy, min, min, 0, 0, SIZE, SIZE);
+        resolve(canvas.toDataURL('image/jpeg', 0.82));
+      };
+      img.src = ev.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+function refreshPhotoUI() {
+  // Settings modal preview
+  const prev = document.getElementById('photo-preview');
+  const plac = document.getElementById('photo-placeholder');
+  const delBtn = document.getElementById('btn-del-photo');
+  if (prev) {
+    if (babyPhoto) {
+      prev.src = babyPhoto;
+      prev.classList.add('visible');
+      plac && plac.classList.add('hidden');
+      if (plac) plac.style.display = 'none';
+      delBtn && delBtn.classList.add('visible');
+    } else {
+      prev.classList.remove('visible');
+      if (plac) plac.style.display = '';
+      delBtn && delBtn.classList.remove('visible');
+    }
+  }
+  // Apple touch icon (for new PWA installs)
+  const ati = document.getElementById('apple-touch-icon');
+  if (ati) ati.href = babyPhoto || 'icon-192.svg';
+}
+
+async function handlePhotoUpload(event) {
+  const file = event.target.files?.[0];
+  if (!file) return;
+  try {
+    const dataUrl = await resizePhoto(file);
+    babyPhoto = dataUrl;
+    localStorage.setItem(PHOTO_KEY, dataUrl);
+    refreshPhotoUI();
+    toast('📷 Photo enregistrée !');
+  } catch (e) {
+    toast('❌ Impossible de lire cette image');
+  }
+  event.target.value = ''; // reset input
+}
+
+function deletePhoto() {
+  if (!confirm('Supprimer la photo du bébé ?')) return;
+  babyPhoto = null;
+  localStorage.removeItem(PHOTO_KEY);
+  refreshPhotoUI();
+  toast('🗑 Photo supprimée');
+}
+
+function avatarHTML(size = 'normal') {
+  if (babyPhoto) {
+    const cls = size === 'sm' ? 'baby-avatar-sm' : 'baby-avatar';
+    return `<img src="${babyPhoto}" class="${cls}" alt="Photo">`;
+  }
+  return `<span class="${size === 'sm' ? '' : 'baby-avatar-placeholder'}">🍼</span>`;
+}
+
 function openSettings() {
   document.getElementById('new-pin').value  = '';
   document.getElementById('set-name').value = cfg.babyName || '';
   document.getElementById('set-dob').value  = cfg.babyDob  || '';
+  refreshPhotoUI();
   document.getElementById('settings-overlay').classList.add('open');
 }
 function closeSettings() { document.getElementById('settings-overlay').classList.remove('open'); }
@@ -1848,7 +1990,7 @@ async function loadDash() {
 
       <!-- Baby header -->
       <div style="background:linear-gradient(135deg,#667eea,#764ba2);border-radius:14px;padding:16px 18px;color:#fff;display:flex;align-items:center;gap:14px;box-shadow:0 2px 8px rgba(102,126,234,.3)">
-        <span style="font-size:40px">🍼</span>
+        ${avatarHTML('normal')}
         <div>
           <div style="font-size:20px;font-weight:800">${babyName}</div>
           ${age ? `<div style="font-size:13px;opacity:.85;margin-top:2px">${age}</div>` : ''}
@@ -2084,8 +2226,9 @@ function renderProgram() {
   const name = cfg.babyName || 'Bébé';
   body.innerHTML = `<div class="program-wrap">
 
-    <div class="prog-total">
-      La journée de ${name}
+    <div class="prog-total" style="display:flex;align-items:center;justify-content:center;gap:12px">
+      ${avatarHTML('sm')}
+      <span>La journée de ${name}</span>
     </div>
 
     <div class="prog-card">
