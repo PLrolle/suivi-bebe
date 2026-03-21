@@ -941,7 +941,7 @@ class Grist {
   }
 
   async deleteEvent(id) {
-    await this.req('DELETE', `/docs/${this.doc}/tables/Events/records`, { records: [id] });
+    await this.req('POST', `/docs/${this.doc}/tables/Events/data/delete`, [id]);
   }
 
   async getReports() {
@@ -965,7 +965,7 @@ class Grist {
   }
 
   async deleteReport(id) {
-    await this.req('DELETE', `/docs/${this.doc}/tables/Reports/records`, { records: [id] });
+    await this.req('POST', `/docs/${this.doc}/tables/Reports/data/delete`, [id]);
   }
 }
 
