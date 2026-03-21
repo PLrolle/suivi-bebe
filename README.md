@@ -82,14 +82,13 @@ Aller sur [docs.getgrist.com](https://docs.getgrist.com) → créer un compte gr
 
 Créer un nouveau document et lui donner un nom (ex : `suivi-bébé`).
 
-Copier l'**ID du document** depuis l'URL :
-```
-https://docs.getgrist.com/[ID-ICI]/suivi-bebe/...
-```
+Récupérer l'**ID du document** : cliquer sur l'**avatar en haut à droite** → **Paramètres du document** → copier l'ID (longue chaîne alphanumérique, ex : `2BnxjkiuSm6EscdpfV4sDg`).
+
+> ⚠️ Utiliser l'ID depuis les **paramètres du document** (et non depuis l'URL, qui peut être plus court).
 
 ### Étape 3 — Obtenir une clé API
 
-Menu profil (en bas à gauche) → **Gestion des API** → **Nouvelle clé** → copier la clé.
+Cliquer sur l'**avatar en haut à droite** → **Paramètres du compte** → section **Clés API** → **Ajouter une clé** → copier la clé.
 
 ### Étape 4 — Proxy Cloudflare Worker (requis sur iPhone Safari)
 
@@ -108,14 +107,14 @@ Au premier lancement, appuyer sur **"Première utilisation / Reconfigurer"** et 
 |-------|-------------|
 | Prénom du bébé | Affiché dans l'app et le dashboard |
 | Date de naissance | Pour le calcul de l'âge |
-| Code PIN | 4 chiffres — chaque parent choisit le sien |
+| Code PIN | Optionnel — 4 chiffres, laisser vide pour désactiver |
 | Clé API Grist | Obtenue à l'étape 3 |
-| ID du document | Obtenu à l'étape 2 (prendre l'ID long depuis les paramètres du document, pas l'URL) |
+| ID du document | Obtenu à l'étape 2 (depuis les paramètres du document) |
 | URL du proxy | URL Cloudflare Worker obtenue à l'étape 4 |
 
 → L'app crée automatiquement les tables `Events` et `Reports` dans Grist. ✅
 
-> ⚠️ **Chaque parent configure l'app sur son téléphone** avec les mêmes identifiants Grist et la même URL proxy. Le PIN peut être différent pour chaque parent.
+> ⚠️ **Chaque parent configure l'app sur son téléphone** avec les mêmes identifiants Grist et la même URL proxy. Le PIN est optionnel et peut être différent pour chaque parent.
 
 > 💡 **Installer comme app native** : Safari → **Partager** → **Sur l'écran d'accueil**
 

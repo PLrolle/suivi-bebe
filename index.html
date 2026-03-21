@@ -1152,6 +1152,7 @@ function evtDetail(e) {
     case 'nap': {
       const dur = e.end_time ? calcDuration(e.time, e.end_time) : null;
       let s = e.nap_label ? `${e.nap_label}` : '';
+      if (e.ingredient) s += (s ? ' · ' : '') + e.ingredient;
       if (e.end_time) s += (s ? ' · ' : '') + `${e.time} → ${e.end_time}`;
       if (dur)        s += ` <span class="dur-badge">${dur}</span>`;
       else if (!e.end_time) s += (s ? ' · ' : '') + '<em>En cours…</em>';
@@ -1278,7 +1279,8 @@ function renderFields(type, d = null) {
       html += field('Commentaire (optionnel)', `<input type="text" id="f-notes" value="${d?.notes||''}" placeholder="ex : de bonne humeur, a bien dormi…">`);
       break;
 
-    case 'nap':
+    case 'nap': {
+      const napLieux = ['Lit (chambre parents)','Lit (chambre bébé)','Transat','Bras','Porte-bébé','Poussette','Voiture','Autre'];
       html += field('Type de sieste',
         `<select id="f-nap-label">
           <option value="">— Choisir —</option>
@@ -1286,11 +1288,17 @@ function renderFields(type, d = null) {
             `<option value="${l}" ${d?.nap_label===l?'selected':''}>${l.charAt(0).toUpperCase()+l.slice(1)}</option>`
           ).join('')}
         </select>`);
+      html += field('Lieu (optionnel)',
+        `<select id="f-nap-place">
+          <option value="">— Choisir —</option>
+          ${napLieux.map(p => `<option value="${p}" ${d?.ingredient===p?'selected':''}>${p}</option>`).join('')}
+        </select>`);
       html += field('Heure de réveil (optionnel)',
         `<input type="time" id="f-end-time" value="${d?.end_time||''}">
         <div class="hint">⏱ La durée sera calculée automatiquement</div>`);
-      html += field('Commentaire (optionnel)', `<input type="text" id="f-notes" value="${d?.notes||''}" placeholder="ex : endormi en voiture, agité…">`);
+      html += field('Commentaire (optionnel)', `<input type="text" id="f-notes" value="${d?.notes||''}" placeholder="ex : agité, s'est réveillé seul…">`);
       break;
+    }
 
     case 'bottle':
       html += field('Repas',
@@ -1414,8 +1422,9 @@ async function saveEvt() {
   if (selType === 'nap') {
     const endEl = document.getElementById('f-end-time');
     if (endEl?.value) fields.end_time = endEl.value;
-    fields.nap_label = v('f-nap-label');
-    fields.notes = v('f-notes');
+    fields.nap_label  = v('f-nap-label');
+    fields.ingredient = v('f-nap-place'); // lieu de la sieste
+    fields.notes      = v('f-notes');
   }
   if (selType === 'bottle') { fields.quantity_ml = n('f-ml'); fields.meal_type = v('f-meal-type'); fields.notes = v('f-notes'); }
   if (selType === 'bath') { fields.notes = v('f-notes'); }
@@ -1472,13 +1481,14 @@ function evtToLine(ev) {
       return `⏰ Lever : ${t}${ev.notes ? ` (${ev.notes})` : ''}`;
     case 'nap': {
       const label = ev.nap_label ? ` ${ev.nap_label}` : '';
+      const place = ev.ingredient ? ` (${ev.ingredient})` : '';
       let napLine;
       if (ev.end_time) {
         const dur = calcDuration(ev.time, ev.end_time);
         const range = `${t} – ${fmtTimeFR(ev.end_time)}`;
-        napLine = `🛏 Sieste${label} : ${range}${dur ? ` (${dur})` : ''}`;
+        napLine = `🛏 Sieste${label}${place} : ${range}${dur ? ` (${dur})` : ''}`;
       } else {
-        napLine = `🛏 Sieste${label} : ${t}`;
+        napLine = `🛏 Sieste${label}${place} : ${t}`;
       }
       return ev.notes ? `${napLine} — ${ev.notes}` : napLine;
     }
@@ -2072,8 +2082,7 @@ function renderProgram() {
   body.innerHTML = `<div class="program-wrap">
 
     <div class="prog-total">
-      <span>🍼</span>
-      Objectif lait journalier : ~1 020 ml
+      La journée de ${name}
     </div>
 
     <div class="prog-card">
