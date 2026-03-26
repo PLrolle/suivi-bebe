@@ -416,6 +416,12 @@
       text-align: center; font-weight: 700; font-size: 15px;
     }
     .prog-total span { font-size: 22px; display: block; margin-bottom: 4px; }
+    .prog-edit-btn {
+      background: none; border: none; font-size: 15px; cursor: pointer;
+      color: var(--muted); padding: 2px 4px; flex-shrink: 0; align-self: flex-start;
+      opacity: .6;
+    }
+    .prog-edit-btn:active { opacity: 1; }
 
     /* ── BABY AVATAR ── */
     .baby-avatar {
@@ -717,6 +723,38 @@
   <div class="rv-actions">
     <button class="btn-primary" onclick="copyRV()" style="flex:1">📋 Copier</button>
     <button class="btn-secondary" onclick="deleteRV()" style="flex:1;color:var(--danger);border-color:var(--danger)">🗑 Supprimer</button>
+  </div>
+</div>
+
+<!-- ═══════════════ PROGRAMME CARD EDIT ═══════════════ -->
+<div class="overlay" id="prog-edit-overlay" onclick="if(event.target===this)closeProgEdit()">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title">✏️ Modifier la carte</div>
+    <input type="hidden" id="pe-idx">
+    <div class="form-group">
+      <label>Horaire / label</label>
+      <input type="text" id="pe-time" placeholder="ex : 11h00 – 11h30">
+    </div>
+    <div class="form-group">
+      <label>Contenu</label>
+      <textarea id="pe-detail" rows="4" style="resize:vertical" placeholder="Détail de l'étape…"></textarea>
+    </div>
+    <div class="form-group">
+      <label>Avertissement <span style="font-weight:400;text-transform:none;font-size:11px">(optionnel)</span></label>
+      <input type="text" id="pe-warn" placeholder="ex : ⏰ Réveiller à 10h45 au plus tard">
+    </div>
+    <div class="form-group">
+      <label>Badge <span style="font-weight:400;text-transform:none;font-size:11px">(optionnel)</span></label>
+      <input type="text" id="pe-badge" placeholder="ex : Cible : 19h15–19h30">
+    </div>
+    <div class="flex-btns">
+      <button class="btn-secondary" onclick="closeProgEdit()">Annuler</button>
+      <button class="btn-primary" onclick="saveProgCard()" style="flex:2">Enregistrer</button>
+    </div>
+    <div style="margin-top:12px;text-align:center">
+      <button class="btn-secondary" style="font-size:12px;color:var(--muted)" onclick="resetProgCard()">↩ Remettre les valeurs par défaut</button>
+    </div>
   </div>
 </div>
 
@@ -1169,7 +1207,7 @@ function renderDay() {
 //  EVENT MODAL
 // ══════════════════════════════════════════════════════════════
 const REFS = {
-  night_waking: '🌙 Réveil 1 → 180 ml + 5 c. &nbsp;|&nbsp; Réveil 2 → 150 ml + 4 c. &nbsp;|&nbsp; Réveil 3 → 90 ml + 3 c.',
+  night_waking: '🌙 Bib. 1 : avant 2h → 180 ml + 5 c. &nbsp;|&nbsp; Bib. 2 : après 2h → 150 ml + 4 c. &nbsp;|&nbsp; Bib. 3 : si bib. 1 avant 2h → 90 ml + 3 c.',
   bottle:       '🍼 Petit-déj : 210 ml &nbsp;·&nbsp; Déjeuner : 210 ml &nbsp;·&nbsp; Goûter : 180 ml &nbsp;·&nbsp; Dîner : 240 ml',
   lunch:        '🥣 Nouveau : 2–5 cuillères &nbsp;·&nbsp; Connu : 30 g de purée',
   nap:          '⏰ Matin : dès 8h30, max 10h45 &nbsp;·&nbsp; Après-midi : 12h–12h30, max 15h30 &nbsp;·&nbsp; Micro : ~17h, ⛔ jamais après 18h',
@@ -2117,118 +2155,103 @@ async function loadDash() {
 // ══════════════════════════════════════════════════════════════
 //  PROGRAMME
 // ══════════════════════════════════════════════════════════════
+const DEFAULT_PROGRAMME = [
+  { icon: '🌙', time: 'Nuit', title: 'Réveils nocturnes',
+    detail: 'Biberon 1 : avant 2h → 180 ml + 5 cuillères\nBiberon 2 : après 2h → 150 ml + 4 cuillères\nBiberon 3 : uniquement si biberon 1 avant 2h → 90 ml + 3 cuillères',
+    warn: '', badge: '' },
+  { icon: '⏰', time: '6h45 – 8h00', title: 'Lever + Petit-déjeuner',
+    detail: 'Biberon 210 ml', warn: '', badge: '' },
+  { icon: '😴', time: 'Dès 8h30', title: 'Sieste du matin',
+    detail: 'Durée : 45 min à 1h30 · Guetter les signes de fatigue',
+    warn: '⏰ Réveiller à 10h45 au plus tard', badge: '' },
+  { icon: '🥣', time: '11h00 – 11h30', title: 'Déjeuner',
+    detail: 'Nouvel aliment : 2–5 cuillères\nAliment connu : 30 g de purée\nPuis biberon 210 ml',
+    warn: '', badge: '' },
+  { icon: '😴', time: '12h00 – 12h30', title: 'Sieste après-déjeuner',
+    detail: 'Durée : ~2 heures · De préférence dans son lit',
+    warn: '⏰ Réveiller à 15h30 au plus tard', badge: '' },
+  { icon: '🍼', time: '15h00 – 15h45', title: 'Goûter',
+    detail: 'Biberon 180 ml', warn: '', badge: '' },
+  { icon: '😴', time: '~17h00', title: 'Micro-sieste',
+    detail: 'Durée : 30 min à 1h · En sortie / poussette',
+    warn: '⛔ Jamais de dodo après 18h00', badge: '' },
+  { icon: '🛁', time: '18h00', title: 'Bain',
+    detail: 'Rituel : volets → câlin → lit → partir', warn: '', badge: '' },
+  { icon: '🌙', time: '18h30 – 18h45', title: 'Dîner',
+    detail: 'Biberon 240 ml', warn: '', badge: '' },
+  { icon: '🌜', time: '19h15 – 19h30', title: 'Coucher',
+    detail: 'Gazouille / chouine → laisser s\'endormir seul',
+    warn: '', badge: 'Cible : 19h15–19h30' },
+];
+
+function getProgramme() {
+  return cfg.programme || DEFAULT_PROGRAMME;
+}
+
+function openProgEdit(idx) {
+  const card = getProgramme()[idx];
+  document.getElementById('pe-idx').value    = idx;
+  document.getElementById('pe-time').value   = card.time   || '';
+  document.getElementById('pe-detail').value = card.detail || '';
+  document.getElementById('pe-warn').value   = card.warn   || '';
+  document.getElementById('pe-badge').value  = card.badge  || '';
+  document.getElementById('prog-edit-overlay').classList.add('open');
+}
+
+function closeProgEdit() {
+  document.getElementById('prog-edit-overlay').classList.remove('open');
+}
+
+function saveProgCard() {
+  const idx  = parseInt(document.getElementById('pe-idx').value);
+  const prog = getProgramme().map(c => ({...c})); // deep copy
+  prog[idx] = {
+    ...prog[idx],
+    time:   document.getElementById('pe-time').value.trim(),
+    detail: document.getElementById('pe-detail').value.trim(),
+    warn:   document.getElementById('pe-warn').value.trim(),
+    badge:  document.getElementById('pe-badge').value.trim(),
+  };
+  cfg.programme = prog;
+  localStorage.setItem(CFG_KEY, JSON.stringify(cfg));
+  closeProgEdit();
+  renderProgram();
+  toast('✅ Programme mis à jour');
+}
+
+function resetProgCard() {
+  const idx = parseInt(document.getElementById('pe-idx').value);
+  const def = DEFAULT_PROGRAMME[idx];
+  document.getElementById('pe-time').value   = def.time   || '';
+  document.getElementById('pe-detail').value = def.detail || '';
+  document.getElementById('pe-warn').value   = def.warn   || '';
+  document.getElementById('pe-badge').value  = def.badge  || '';
+}
+
 function renderProgram() {
   const body = document.getElementById('program-body');
   const name = cfg.babyName || 'Bébé';
-  body.innerHTML = `<div class="program-wrap">
+  const prog = getProgramme();
 
+  const cards = prog.map((c, i) => `
+    <div class="prog-card">
+      <div class="prog-icon">${c.icon}</div>
+      <div class="prog-body">
+        ${c.time   ? `<div class="prog-time">${c.time}</div>` : ''}
+        <div class="prog-title">${c.title}</div>
+        ${c.detail ? `<div class="prog-detail">${c.detail.replace(/\n/g, '<br>')}</div>` : ''}
+        ${c.warn   ? `<div class="prog-warn">${c.warn}</div>` : ''}
+        ${c.badge  ? `<span class="prog-badge">${c.badge}</span>` : ''}
+      </div>
+      <button class="prog-edit-btn" onclick="openProgEdit(${i})" title="Modifier">✏️</button>
+    </div>`).join('');
+
+  body.innerHTML = `<div class="program-wrap">
     <div class="prog-total" style="display:flex;align-items:center;justify-content:center;gap:12px">
       ${avatarHTML('sm')}
       <span>La journée de ${name}</span>
     </div>
-
-    <div class="prog-card">
-      <div class="prog-icon">🌙</div>
-      <div class="prog-body">
-        <div class="prog-time">Nuit</div>
-        <div class="prog-title">Réveils nocturnes</div>
-        <div class="prog-detail">
-          Réveil 1 → <strong>180 ml</strong> + 5 cuillères<br>
-          Réveil 2 → <strong>150 ml</strong> + 4 cuillères<br>
-          Réveil 3 → <strong>90 ml</strong> + 3 cuillères
-        </div>
-      </div>
-    </div>
-
-    <div class="prog-card">
-      <div class="prog-icon">⏰</div>
-      <div class="prog-body">
-        <div class="prog-time">6h45 – 8h00</div>
-        <div class="prog-title">Lever + Petit-déjeuner</div>
-        <div class="prog-detail">Biberon <strong>210 ml</strong></div>
-      </div>
-    </div>
-
-    <div class="prog-card">
-      <div class="prog-icon">😴</div>
-      <div class="prog-body">
-        <div class="prog-time">Dès 8h30</div>
-        <div class="prog-title">Sieste du matin</div>
-        <div class="prog-detail">Durée : 45 min à 1h30 · Guetter les signes de fatigue</div>
-        <div class="prog-warn">⏰ Réveiller à 10h45 au plus tard</div>
-      </div>
-    </div>
-
-    <div class="prog-card">
-      <div class="prog-icon">🥣</div>
-      <div class="prog-body">
-        <div class="prog-time">11h00 – 11h30</div>
-        <div class="prog-title">Déjeuner</div>
-        <div class="prog-detail">
-          Nouvel aliment : <strong>2–5 cuillères</strong><br>
-          Aliment connu : <strong>30 g</strong> de purée<br>
-          Puis biberon <strong>210 ml</strong>
-        </div>
-      </div>
-    </div>
-
-    <div class="prog-card">
-      <div class="prog-icon">😴</div>
-      <div class="prog-body">
-        <div class="prog-time">12h00 – 12h30</div>
-        <div class="prog-title">Sieste après-déjeuner</div>
-        <div class="prog-detail">Durée : ~2 heures · De préférence dans son lit</div>
-        <div class="prog-warn">⏰ Réveiller à 15h30 au plus tard</div>
-      </div>
-    </div>
-
-    <div class="prog-card">
-      <div class="prog-icon">🍼</div>
-      <div class="prog-body">
-        <div class="prog-time">15h00 – 15h45</div>
-        <div class="prog-title">Goûter</div>
-        <div class="prog-detail">Biberon <strong>180 ml</strong></div>
-      </div>
-    </div>
-
-    <div class="prog-card">
-      <div class="prog-icon">😴</div>
-      <div class="prog-body">
-        <div class="prog-time">~17h00</div>
-        <div class="prog-title">Micro-sieste</div>
-        <div class="prog-detail">Durée : 30 min à 1h · En sortie / poussette</div>
-        <div class="prog-warn">⛔ Jamais de dodo après 18h00</div>
-      </div>
-    </div>
-
-    <div class="prog-card">
-      <div class="prog-icon">🛁</div>
-      <div class="prog-body">
-        <div class="prog-time">18h00</div>
-        <div class="prog-title">Bain</div>
-        <div class="prog-detail">Rituel : volets → câlin → lit → partir</div>
-      </div>
-    </div>
-
-    <div class="prog-card">
-      <div class="prog-icon">🌙</div>
-      <div class="prog-body">
-        <div class="prog-time">18h30 – 18h45</div>
-        <div class="prog-title">Dîner</div>
-        <div class="prog-detail">Biberon <strong>240 ml</strong></div>
-      </div>
-    </div>
-
-    <div class="prog-card">
-      <div class="prog-icon">🌜</div>
-      <div class="prog-body">
-        <div class="prog-time">19h15 – 19h30</div>
-        <div class="prog-title">Coucher</div>
-        <div class="prog-detail">Gazouille / chouine → laisser s'endormir seul</div>
-        <span class="prog-badge">Cible : 19h15–19h30</span>
-      </div>
-    </div>
-
+    ${cards}
   </div>`;
 }
 
