@@ -44,41 +44,6 @@
     .screen { display: none; min-height: 100dvh; flex-direction: column; }
     .screen.active { display: flex; }
 
-    /* ── PIN ── */
-    #pin-screen {
-      align-items: center; justify-content: center;
-      padding: 32px 24px;
-      background: linear-gradient(160deg, #667eea 0%, #764ba2 100%);
-      gap: 0;
-    }
-    .pin-logo { font-size: 72px; filter: drop-shadow(0 4px 12px rgba(0,0,0,.2)); margin-bottom: 16px; }
-    .pin-title { color: #fff; font-size: 26px; font-weight: 700; letter-spacing: -0.5px; }
-    .pin-sub { color: rgba(255,255,255,.75); font-size: 15px; margin-top: 4px; margin-bottom: 36px; }
-    .pin-dots { display: flex; gap: 18px; margin-bottom: 36px; }
-    .pin-dot {
-      width: 18px; height: 18px; border-radius: 50%;
-      background: rgba(255,255,255,.25);
-      border: 2px solid rgba(255,255,255,.6);
-      transition: all .2s;
-    }
-    .pin-dot.filled { background: #fff; border-color: #fff; transform: scale(1.1); }
-    .pin-pad { display: grid; grid-template-columns: repeat(3, 76px); gap: 14px; }
-    .pin-btn {
-      width: 76px; height: 76px; border-radius: 50%; border: none;
-      background: rgba(255,255,255,.18); color: #fff;
-      font-size: 26px; font-weight: 600; cursor: pointer;
-      display: flex; align-items: center; justify-content: center;
-      transition: background .12s, transform .1s;
-      backdrop-filter: blur(4px);
-    }
-    .pin-btn:active { background: rgba(255,255,255,.38); transform: scale(.93); }
-    .pin-btn.del { font-size: 22px; }
-    .pin-err { color: #ffd700; font-size: 14px; margin-top: 20px; height: 20px; transition: opacity .3s; opacity: 0; }
-    .pin-err.show { opacity: 1; }
-    .pin-setup-link {
-      color: rgba(255,255,255,.65); font-size: 13px; margin-top: 24px;
-      background: none; border: none; cursor: pointer; text-decoration: underline;
-    }
 
     /* ── SETUP ── */
     #setup-screen { background: var(--bg); padding: 24px; overflow-y: auto; }
@@ -563,34 +528,6 @@
 </head>
 <body>
 
-<!-- ═══════════════ PIN SCREEN ═══════════════ -->
-<div id="pin-screen" class="screen">
-  <div class="pin-logo">🍼</div>
-  <div class="pin-title" id="pin-title">Suivi Bébé</div>
-  <div class="pin-sub">Entrez votre code secret</div>
-  <div class="pin-dots">
-    <div class="pin-dot" id="pd0"></div>
-    <div class="pin-dot" id="pd1"></div>
-    <div class="pin-dot" id="pd2"></div>
-    <div class="pin-dot" id="pd3"></div>
-  </div>
-  <div class="pin-pad">
-    <button class="pin-btn" onclick="pinKey(1)">1</button>
-    <button class="pin-btn" onclick="pinKey(2)">2</button>
-    <button class="pin-btn" onclick="pinKey(3)">3</button>
-    <button class="pin-btn" onclick="pinKey(4)">4</button>
-    <button class="pin-btn" onclick="pinKey(5)">5</button>
-    <button class="pin-btn" onclick="pinKey(6)">6</button>
-    <button class="pin-btn" onclick="pinKey(7)">7</button>
-    <button class="pin-btn" onclick="pinKey(8)">8</button>
-    <button class="pin-btn" onclick="pinKey(9)">9</button>
-    <button class="pin-btn" onclick="pinKey(0)" style="grid-column:2">0</button>
-    <button class="pin-btn del" onclick="pinDel()" style="grid-column:3">⌫</button>
-  </div>
-  <div class="pin-err" id="pin-err">Code incorrect, réessayez</div>
-  <button class="pin-setup-link" onclick="goSetup()">⚙️ Première utilisation / Reconfigurer</button>
-</div>
-
 <!-- ═══════════════ SETUP SCREEN ═══════════════ -->
 <div id="setup-screen" class="screen">
   <div style="overflow-y:auto; padding: 24px; flex:1;">
@@ -620,11 +557,6 @@
       <div class="hint">Permet d'afficher l'âge dans le bilan</div>
     </div>
     <div class="form-group">
-      <label>Code PIN (optionnel)</label>
-      <input type="tel" id="s-pin" placeholder="Laisser vide pour désactiver" maxlength="4" inputmode="numeric" pattern="\d{4}">
-      <div class="hint">Si renseigné, l'app demandera ce code à l'ouverture</div>
-    </div>
-    <div class="form-group">
       <label>Clé API Grist</label>
       <input type="password" id="s-key" placeholder="Coller votre clé API…" autocomplete="off">
       <div class="hint">Profil Grist → Gestion des API → Nouvelle clé</div>
@@ -642,7 +574,7 @@
     <button class="btn-primary" id="setup-btn" onclick="setupSave()">Connecter et initialiser Grist</button>
     <div id="setup-err"></div>
     <div style="height:20px;"></div>
-    <button class="btn-secondary" onclick="showScreen('pin-screen')">← Retour</button>
+    <button class="btn-secondary" onclick="location.reload()">← Retour</button>
   </div>
 </div>
 
@@ -812,11 +744,6 @@
     <div class="form-group">
       <label>Date de naissance</label>
       <input type="date" id="set-dob">
-    </div>
-    <div class="form-group">
-      <label>Code PIN (optionnel)</label>
-      <input type="tel" id="new-pin" placeholder="Laisser vide pour désactiver" maxlength="4" inputmode="numeric">
-      <div class="hint">Si renseigné, l'app demandera ce code à l'ouverture</div>
     </div>
     <div class="flex-btns">
       <button class="btn-secondary" onclick="closeSettings()">Fermer</button>
@@ -1031,42 +958,7 @@ class Grist {
   }
 }
 
-// ══════════════════════════════════════════════════════════════
-//  PIN
-// ══════════════════════════════════════════════════════════════
-let pinBuf = '';
-
-function pinKey(n) {
-  if (pinBuf.length >= 4) return;
-  pinBuf += String(n);
-  renderPinDots();
-  if (pinBuf.length === 4) setTimeout(checkPin, 160);
-}
-
-function pinDel() {
-  pinBuf = pinBuf.slice(0, -1);
-  renderPinDots();
-}
-
-function renderPinDots() {
-  for (let i = 0; i < 4; i++)
-    document.getElementById(`pd${i}`).classList.toggle('filled', i < pinBuf.length);
-}
-
-function checkPin() {
-  if (!cfg.ready) { goSetup(); return; }
-  if (!cfg.pin || pinBuf === cfg.pin) {
-    bootApp();
-  } else {
-    const el = document.getElementById('pin-err');
-    el.classList.add('show');
-    setTimeout(() => { el.classList.remove('show'); pinBuf = ''; renderPinDots(); }, 1600);
-    pinBuf = ''; renderPinDots();
-  }
-}
-
 function goSetup() {
-  pinBuf = ''; renderPinDots();
   showScreen('setup-screen');
 }
 
@@ -1076,7 +968,6 @@ function goSetup() {
 async function setupSave() {
   const babyName = (document.getElementById('s-name').value.trim()) || 'Bébé';
   const babyDob  = document.getElementById('s-dob').value.trim();
-  const pin      = document.getElementById('s-pin').value.trim();
   const key      = document.getElementById('s-key').value.trim();
   const doc      = document.getElementById('s-doc').value.trim();
   const proxy    = document.getElementById('s-proxy').value.trim();
@@ -1084,8 +975,7 @@ async function setupSave() {
   const btn   = document.getElementById('setup-btn');
 
   errEl.textContent = '';
-  if (pin && !/^\d{4}$/.test(pin)) { errEl.textContent = '⚠️ Le PIN doit être exactement 4 chiffres (ou laisser vide).'; return; }
-  if (!key)                        { errEl.textContent = '⚠️ La clé API est requise.'; return; }
+  if (!key) { errEl.textContent = '⚠️ La clé API est requise.'; return; }
   if (!doc)                  { errEl.textContent = '⚠️ L\'ID du document est requis.'; return; }
 
   btn.textContent = '⏳ Connexion à Grist…'; btn.disabled = true;
@@ -1094,7 +984,7 @@ async function setupSave() {
   try {
     const api = new Grist(key, doc, proxy);
     await api.initTables();
-    cfg = { pin, apiKey: key, docId: doc, proxyUrl: proxy, babyName, babyDob, ready: true };
+    cfg = { apiKey: key, docId: doc, proxyUrl: proxy, babyName, babyDob, ready: true };
     localStorage.setItem(CFG_KEY, JSON.stringify(cfg));
     grist = api;
     toast('✅ Configuration réussie !');
@@ -1111,10 +1001,6 @@ async function setupSave() {
 // ══════════════════════════════════════════════════════════════
 function bootApp() {
   if (!grist) grist = new Grist(cfg.apiKey, cfg.docId, cfg.proxyUrl);
-  // Update PIN screen title with baby name (for next logout)
-  const name = cfg.babyName || 'Bébé';
-  const pinTitle = document.getElementById('pin-title');
-  if (pinTitle) pinTitle.textContent = `Suivi ${name}`;
   // Pre-fill setup form if re-opening settings
   const sName  = document.getElementById('s-name');
   const sDob   = document.getElementById('s-dob');
@@ -1621,31 +1507,65 @@ async function buildReport() {
   document.getElementById('rp-auto-saved').style.display = 'none';
 
   try {
-    const dayEvts = [...events].sort((a, b) => (a.time||'').localeCompare(b.time||''));
-    const nextDate = addDays(curDate, 1);
-    const nextEvts = (await grist.getEvents(nextDate)).sort((a, b) => (a.time||'').localeCompare(b.time||''));
+    const isToday  = curDate === todayStr();
+    const prevDate = addDays(curDate, -1);
+    const nextDate = addDays(curDate,  1);
+
+    const sort = arr => arr.sort((a, b) => (a.time||'').localeCompare(b.time||''));
+    const dayEvts  = sort([...events]);
+    const prevEvts = sort(await grist.getEvents(prevDate));
+    const nextEvts = isToday ? [] : sort(await grist.getEvents(nextDate));
 
     const dayLabel  = fmtDateFR(curDate);
+    const prevLabel = fmtDateFR(prevDate);
     const nextLabel = fmtDateFR(nextDate);
 
-    let txt = `Bonjour,\n\n*Journée du ${dayLabel}*\n\n`;
+    let txt = `Bonjour,\n\n`;
 
-    dayEvts.filter(e => (e.time||'') >= '07:00').forEach(ev => {
-      const l = evtToLine(ev);
-      if (l) txt += l + '\n\n';
-    });
+    if (isToday) {
+      // ── Rapport du jour ──────────────────────────────────────
+      // 1. Yesterday's complete day (all events including early-AM wakings)
+      txt += `*Journée du ${prevLabel}*\n\n`;
+      prevEvts.forEach(ev => { const l = evtToLine(ev); if (l) txt += l + '\n\n'; });
 
-    const nightEvts = nextEvts.filter(e => (e.time||'') < '07:00');
-    if (nightEvts.length) {
-      txt += `🌙 *Nuit*\n`;
-      nightEvts.forEach(ev => { const l = evtToLine(ev); if (l) txt += l + '\n'; });
-      txt += '\n';
-    }
+      // 2. Last night: night wakings stored on today before lever
+      const lastNight = dayEvts.filter(e => e.type === 'night_waking' && (e.time||'') < '07:00');
+      if (lastNight.length) {
+        txt += `🌙 *Nuit*\n`;
+        lastNight.forEach(ev => { const l = evtToLine(ev); if (l) txt += l + '\n'; });
+        txt += '\n';
+      }
 
-    const morningEvts = nextEvts.filter(e => (e.time||'') >= '07:00');
-    if (morningEvts.length) {
-      txt += `🌅 *Matin - ${nextLabel}*\n\n`;
-      morningEvts.forEach(ev => { const l = evtToLine(ev); if (l) txt += l + '\n\n'; });
+      // 3. Today so far (everything except early-AM night wakings already listed)
+      const todayDaytime = dayEvts.filter(e => !(e.type === 'night_waking' && (e.time||'') < '07:00'));
+      if (todayDaytime.length) {
+        txt += `☀️ *Aujourd'hui — ${dayLabel}*\n\n`;
+        todayDaytime.forEach(ev => { const l = evtToLine(ev); if (l) txt += l + '\n\n'; });
+      }
+
+    } else {
+      // ── Rapport pour une date passée ─────────────────────────
+      // 1. Preceding night: bedtime from D-1  +  night wakings from D before lever
+      const prevBedtime    = prevEvts.filter(e => e.type === 'bedtime');
+      const earlyMorning   = dayEvts.filter(e => e.type === 'night_waking' && (e.time||'') < '07:00');
+      if (prevBedtime.length || earlyMorning.length) {
+        txt += `🌙 *Nuit du ${prevLabel} au ${dayLabel}*\n`;
+        [...prevBedtime, ...earlyMorning].forEach(ev => { const l = evtToLine(ev); if (l) txt += l + '\n'; });
+        txt += '\n';
+      }
+
+      // 2. Main day (all events except early-AM night wakings already listed)
+      txt += `*Journée du ${dayLabel}*\n\n`;
+      dayEvts
+        .filter(e => !(e.type === 'night_waking' && (e.time||'') < '07:00'))
+        .forEach(ev => { const l = evtToLine(ev); if (l) txt += l + '\n\n'; });
+
+      // 3. Following morning: lever + early non-night events from D+1
+      const nextMorning = nextEvts.filter(e => e.type !== 'night_waking' && (e.time||'') < '10:00');
+      if (nextMorning.length) {
+        txt += `🌅 *${nextLabel}*\n`;
+        nextMorning.forEach(ev => { const l = evtToLine(ev); if (l) txt += l + '\n'; });
+      }
     }
 
     ta.value = txt.trimEnd();
@@ -1829,7 +1749,6 @@ function avatarHTML(size = 'normal') {
 }
 
 function openSettings() {
-  document.getElementById('new-pin').value  = '';
   document.getElementById('set-name').value = cfg.babyName || '';
   document.getElementById('set-dob').value  = cfg.babyDob  || '';
   refreshPhotoUI();
@@ -1839,16 +1758,11 @@ function closeSettings() { document.getElementById('settings-overlay').classList
 function settingsOverlayClick(e) { if (e.target === e.currentTarget) closeSettings(); }
 
 function saveSettings() {
-  const p    = document.getElementById('new-pin').value.trim();
   const name = (document.getElementById('set-name').value.trim()) || cfg.babyName || 'Bébé';
   const dob  = document.getElementById('set-dob').value.trim();
-  if (p && !/^\d{4}$/.test(p)) { toast('⚠️ PIN : 4 chiffres requis'); return; }
-  if (p) cfg.pin = p;
   cfg.babyName = name;
   cfg.babyDob  = dob;
   localStorage.setItem(CFG_KEY, JSON.stringify(cfg));
-  const pinTitle = document.getElementById('pin-title');
-  if (pinTitle) pinTitle.textContent = `Suivi ${name}`;
   toast('✅ Paramètres sauvegardés !');
   closeSettings();
 }
@@ -2329,19 +2243,11 @@ if ('serviceWorker' in navigator) {
 //  BOOT
 // ══════════════════════════════════════════════════════════════
 window.addEventListener('load', () => {
-  // Si configuré sans PIN → démarrer directement
-  if (cfg.ready && !cfg.pin) {
+  if (cfg.ready) {
     bootApp();
   } else {
-    showScreen('pin-screen');
+    showScreen('setup-screen');
   }
-  // Keyboard PIN support
-  document.addEventListener('keydown', e => {
-    if (document.getElementById('pin-screen').classList.contains('active')) {
-      if (e.key >= '0' && e.key <= '9') pinKey(parseInt(e.key));
-      if (e.key === 'Backspace') pinDel();
-    }
-  });
 });
 </script>
 </body>
