@@ -32,7 +32,7 @@ Application web progressive (PWA) de suivi quotidien pour bébé — conçue pou
 
 - 👨‍👩‍👧 **Synchronisation temps réel** entre les deux parents via Grist
 - 📱 **PWA installable** sur iPhone (Safari → Partager → Sur l'écran d'accueil)
-- 🎂 Affichage de l'**âge du bébé** en mois et semaines
+- 🎂 Affichage **du prénom, de la photo et de l'âge du bébé** en mois et semaines (synchronisation locale seulement)
 
 ---
 
