@@ -40,9 +40,7 @@ Application web progressive (PWA) de suivi quotidien pour bébé — conçue pou
 
 | Journée | Dashboard |
 |---------|-----------|
-| ![Journée](screenshots/journee.png) | ![Bilan](screenshots/bilan.png) |
-
-> 💡 *Ajouter vos propres captures dans le dossier `screenshots/`*
+| <img src="journee.png" alt="Journée" width="100%"> | <img src="bilan.png" alt="Bilan" width="100%"> |
 
 ---
 
